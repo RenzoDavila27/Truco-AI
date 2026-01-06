@@ -85,6 +85,15 @@ ESTADO_FALTA_ENVIDO = 4
 ESTADO_CERRADO = 5
 
 # =============================================================================
+# ESTADOS DEL TRUCO
+# =============================================================================
+ESTADO_TRUCO_NO_CANTADO = 0
+ESTADO_TRUCO = 1
+ESTADO_RETRUCO = 2
+ESTADO_VALE_CUATRO = 3
+ESTADO_TRUCO_CERRADO = 4
+
+# =============================================================================
 # ACCIONES (ACTION SPACE)
 # =============================================================================
 class Acciones(Enum):

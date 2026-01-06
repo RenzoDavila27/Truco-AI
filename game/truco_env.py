@@ -1,110 +1,105 @@
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
-from constantes import Acciones, MAZO_DATOS
+from constantes import (
+    Acciones,
+    ESTADO_ENVIDO,
+    ESTADO_ENVIDO_ENVIDO,
+    ESTADO_REAL_ENVIDO,
+    ESTADO_FALTA_ENVIDO,
+)
+from truco_logic import TrucoGameLogic
+
 
 class TrucoEnv(gym.Env):
     """
     Entorno Gymnasium para el Truco Argentino.
     """
+
     metadata = {"render_modes": ["human", "ansi"], "render_fps": 1}
 
     def __init__(self):
         super(TrucoEnv, self).__init__()
-        
+
         # ---------------------------------------------------------------------
-        # 1. ACTION SPACE (Espacio de Acción)
+        # 1. ACTION SPACE (Espacio de Accion)
         # ---------------------------------------------------------------------
-        # Definimos 13 acciones posibles según constantes.py
+        # Definimos 13 acciones posibles segun constantes.py
         self.action_space = spaces.Discrete(len(Acciones))
 
         # ---------------------------------------------------------------------
-        # 2. OBSERVATION SPACE (Espacio de Observación)
+        # 2. OBSERVATION SPACE (Espacio de Observacion)
         # ---------------------------------------------------------------------
-        # Basado en la función 'estado_a_numerico' del readme.md
-        # Se agregan 3 slots para las cartas jugadas por el oponente para 
-        # mantener la propiedad de Markov.
-        
         # Estructura del Vector (Total: 13 elementos):
         # [0-2]:  Mis Cartas (Ranking 1-14, 0 si no hay carta)
-        # [3-5]:  Cartas Oponente en Mesa (Ranking 1-14, 0 si no jugó)
+        # [3-5]:  Cartas Oponente en Mesa (Ranking 1-14, 0 si no jugo)
         # [6]:    Mis Puntos (0-30)
         # [7]:    Puntos Oponente (0-30)
         # [8]:    Ronda Actual (1, 2, 3)
-        # [9]:    Turno (1=Mío, 0=Oponente)
+        # [9]:    Turno (1=Jugador, 0=Oponente)
         # [10]:   Nivel Truco (0=Nada, 1=Truco, 2=Retruco, 3=Vale4)
         # [11]:   Nivel Envido (0=Nada, 1=Envido, 2=Real, 3=Falta)
-        # [12]:   Es Mano (1=Sí, 0=No)
+        # [12]:   Es Mano (1=Si, 0=No)
 
-        LOW_BOUNDS = np.array([
-            0, 0, 0,    # Mis cartas
-            0, 0, 0,    # Cartas rival
-            0,          # Mis puntos
-            0,          # Puntos rival
-            1,          # Ronda
-            0,          # Turno
-            0,          # Nivel Truco
-            0,          # Nivel Envido
-            0           # Es mano
-        ], dtype=np.float32)
-
-        HIGH_BOUNDS = np.array([
-            14, 14, 14, # Ranking máx (4 de copas)
-            14, 14, 14,
-            30,         # Puntos máx
-            30,
-            3,          # Ronda máx
-            1,          # Turno bool
-            4,          # Nivel Truco (Vale 4)
-            4,          # Nivel Envido (aprox)
-            1           # Es mano bool
-        ], dtype=np.float32)
-
-        self.observation_space = spaces.Box(
-            low=LOW_BOUNDS, 
-            high=HIGH_BOUNDS, 
-            dtype=np.float32
+        low_bounds = np.array(
+            [
+                0, 0, 0,  # Mis cartas
+                0, 0, 0,  # Cartas rival
+                0,        # Mis puntos
+                0,        # Puntos rival
+                1,        # Ronda
+                0,        # Turno
+                0,        # Nivel Truco
+                0,        # Nivel Envido
+                0,        # Es mano
+            ],
+            dtype=np.float32,
         )
 
-        # Estado interno (Placeholder hasta conectar con el Motor de Juego)
+        high_bounds = np.array(
+            [
+                14, 14, 14,  # Ranking max
+                14, 14, 14,
+                30,          # Puntos max
+                30,
+                3,           # Ronda max
+                1,           # Turno bool
+                4,           # Nivel Truco (Vale 4)
+                4,           # Nivel Envido (aprox)
+                1,           # Es mano bool
+            ],
+            dtype=np.float32,
+        )
+
+        self.observation_space = spaces.Box(
+            low=low_bounds,
+            high=high_bounds,
+            dtype=np.float32,
+        )
+
+        # Estado interno y motor de reglas
         self.state = None
+        self.logic = TrucoGameLogic()
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
-        
-        # AQUI IRÍA LA INICIALIZACIÓN DEL MOTOR DE JUEGO (REPARTIR CARTAS)
-        # Por ahora devolvemos un estado vacío válido para probar el shape
-        
-        self.state = np.zeros(13, dtype=np.float32)
-        
-        # Ejemplo: Soy mano (idx 12), ronda 1 (idx 8)
-        self.state[12] = 1.0 
-        self.state[8] = 1.0 
-        
-        # Ejemplo: Me tocaron el 1 de Espada (Ranking 1) y dos 4s (Ranking 14)
-        self.state[0] = 1.0
-        self.state[1] = 14.0
-        self.state[2] = 14.0
+        self.logic.reset_partida()
+        self.state = self._estado_a_observacion()
 
         info = {}
         return self.state, info
 
     def step(self, action):
         """
-        Ejecuta una acción.
-        action: int (índice del Enum Acciones)
+        Ejecuta una accion.
+        action: int (indice del Enum Acciones)
         """
-        # 1. Validar acción (usando Action Masking en el futuro)
-        # 2. Comunicar acción al Motor de Reglas
+        # 1. Validar accion (usando Action Masking en el futuro)
+        # 2. Comunicar accion al Motor de Reglas
         # 3. Obtener nuevo estado, recompensa y flags del Motor
-        
-        # MOCK DE RESPUESTA (Solo para verificar estructura)
-        reward = 0.0
-        terminated = False
+        reward, terminated, _ = self.logic.aplicar_accion(action)
+        self.state = self._estado_a_observacion()
         truncated = False
-        
-        # Simular cambio de turno
-        self.state[9] = 0.0 # Ahora es turno del oponente
 
         info = {}
         return self.state, reward, terminated, truncated, info
@@ -115,6 +110,38 @@ class TrucoEnv(gym.Env):
         print(f"Mis Cartas (Rank): {self.state[0:3]}")
         print(f"Puntos: {self.state[6]} vs {self.state[7]}")
         print(f"Truco Lvl: {self.state[10]} | Envido Lvl: {self.state[11]}")
-    
+
     def close(self):
         pass
+
+    def _estado_a_observacion(self):
+        estado = self.logic.estado
+        obs = np.zeros(13, dtype=np.float32)
+
+        # Mis cartas
+        for i, carta in enumerate(estado.mano_jugador[:3]):
+            obs[i] = self.logic.obtener_ranking(carta)
+
+        # Cartas del oponente en mesa
+        cartas_op = [c for c, jugador_id in estado.cartas_jugadas if jugador_id == 1]
+        for i, carta in enumerate(cartas_op[:3]):
+            obs[3 + i] = self.logic.obtener_ranking(carta)
+
+        obs[6] = float(estado.puntos_jugador)
+        obs[7] = float(estado.puntos_oponente)
+        obs[8] = float(estado.numero_ronda)
+        obs[9] = 1.0 if estado.turno_actual == 0 else 0.0
+        obs[10] = float(estado.nivel_truco)
+        obs[11] = float(self._nivel_envido_desde_estado(estado))
+        obs[12] = 1.0 if estado.es_mano else 0.0
+
+        return obs
+
+    def _nivel_envido_desde_estado(self, estado):
+        if estado.estado_canto_envido == ESTADO_FALTA_ENVIDO:
+            return 3
+        if estado.estado_canto_envido == ESTADO_REAL_ENVIDO:
+            return 2
+        if estado.estado_canto_envido in [ESTADO_ENVIDO, ESTADO_ENVIDO_ENVIDO]:
+            return 1
+        return 0
