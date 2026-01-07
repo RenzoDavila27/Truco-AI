@@ -81,10 +81,12 @@ class TrucoEnv(gym.Env):
         self.state = None
         self.logic = TrucoGameLogic()
 
-    def reset(self, seed=None, options=None):
+    def reset(self, seed=None, options=None, player_id=None):
         super().reset(seed=seed)
         self.logic.reset_partida()
-        self.state = self._estado_a_observacion()
+        if player_id is None:
+            player_id = self.get_current_player()
+        self.state = self._estado_a_observacion(player_id)
 
         info = {}
         return self.state, info
@@ -98,9 +100,9 @@ class TrucoEnv(gym.Env):
         # 2. Comunicar accion al Motor de Reglas
         # 3. Obtener nuevo estado, recompensa y flags del Motor
         if player_id is None:
-            player_id = self.logic.estado.turno_actual
+            player_id = self.get_current_player()
         reward, terminated, _ = self.logic.aplicar_accion(action, player_id)
-        self.state = self._estado_a_observacion()
+        self.state = self._estado_a_observacion(player_id)
         truncated = False
 
         info = {}
@@ -152,27 +154,47 @@ class TrucoEnv(gym.Env):
 
     def close(self):
         pass
+    
+    def get_current_player(self):
+        estado = self.logic.estado
+        if estado.turno_responder_envido:
+            return 1 - estado.jugador_que_canto_envido
+        if estado.turno_responder_truco:
+            return 1 - estado.jugador_que_canto_truco
+        return estado.turno_actual
 
-    def _estado_a_observacion(self):
+    def get_observation(self, player_id=0):
+        return self._estado_a_observacion(player_id)
+
+    def _estado_a_observacion(self, player_id=0):
         estado = self.logic.estado
         obs = np.zeros(13, dtype=np.float32)
 
         # Mis cartas
-        for i, carta in enumerate(estado.mano_jugador[:3]):
+        mano = estado.mano_jugador if player_id == 0 else estado.mano_oponente
+        for i, carta in enumerate(mano[:3]):
             obs[i] = self.logic.obtener_ranking(carta)
 
         # Cartas del oponente en mesa
-        cartas_op = [c for c, jugador_id in estado.cartas_jugadas if jugador_id == 1]
+        rival_id = 1 - player_id
+        cartas_op = [c for c, jugador_id in estado.cartas_jugadas if jugador_id == rival_id]
         for i, carta in enumerate(cartas_op[:3]):
             obs[3 + i] = self.logic.obtener_ranking(carta)
 
-        obs[6] = float(estado.puntos_jugador)
-        obs[7] = float(estado.puntos_oponente)
+        if player_id == 0:
+            obs[6] = float(estado.puntos_jugador)
+            obs[7] = float(estado.puntos_oponente)
+        else:
+            obs[6] = float(estado.puntos_oponente)
+            obs[7] = float(estado.puntos_jugador)
         obs[8] = float(estado.numero_ronda)
-        obs[9] = 1.0 if estado.turno_actual == 0 else 0.0
+        obs[9] = 1.0 if self.get_current_player() == player_id else 0.0
         obs[10] = float(estado.nivel_truco)
         obs[11] = float(self._nivel_envido_desde_estado(estado))
-        obs[12] = 1.0 if estado.es_mano else 0.0
+        if player_id == 0:
+            obs[12] = 1.0 if estado.es_mano else 0.0
+        else:
+            obs[12] = 1.0 if not estado.es_mano else 0.0
 
         return obs
 

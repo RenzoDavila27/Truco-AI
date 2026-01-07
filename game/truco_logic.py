@@ -203,6 +203,15 @@ class TrucoGameLogic:
             return 1
         return self.estado.nivel_truco + 1
 
+    def _sumar_puntos(self, jugador_id, puntos):
+        if jugador_id == 0:
+            antes = self.estado.puntos_jugador
+            self.estado.puntos_jugador = min(30, self.estado.puntos_jugador + puntos)
+            return self.estado.puntos_jugador - antes
+        antes = self.estado.puntos_oponente
+        self.estado.puntos_oponente = min(30, self.estado.puntos_oponente + puntos)
+        return self.estado.puntos_oponente - antes
+
     def aplicar_accion(self, accion_idx, player_id):
         """
         Procesa la acción recibida desde el entorno.
@@ -211,6 +220,7 @@ class TrucoGameLogic:
         reward = 0
         terminado = False
         info = {}
+        mano_terminada = False
 
         # Mapeo inverso para legibilidad
         accion = Acciones(accion_idx)
@@ -270,12 +280,12 @@ class TrucoGameLogic:
                     if ganador_mano is not None:
                         puntos_truco = self._valor_truco_puntaje()
                         if ganador_mano == 0:
-                            self.estado.puntos_jugador += puntos_truco
-                            reward += puntos_truco
+                            delta = self._sumar_puntos(0, puntos_truco)
+                            reward += delta
                         else:
-                            self.estado.puntos_oponente += puntos_truco
-                            reward -= puntos_truco
-                        terminado = True
+                            delta = self._sumar_puntos(1, puntos_truco)
+                            reward -= delta
+                        mano_terminada = True
             else:
                 # Castigo por intentar jugar carta inexistente
                 reward = -5 
@@ -322,16 +332,16 @@ class TrucoGameLogic:
                 reward += self._resolver_envido(acepta=False, player_id=player_id)
             elif self.estado.turno_responder_truco:
                 reward += self._resolver_truco(acepta=False, player_id=player_id)
-                terminado = True
+                mano_terminada = True
 
         elif accion == Acciones.IR_AL_MAZO:
             if player_id == 0:
-                self.estado.puntos_oponente += 1
-                reward = -1
+                delta = self._sumar_puntos(1, 1)
+                reward = -delta
             else:
-                self.estado.puntos_jugador += 1
-                reward = 1
-            terminado = True
+                delta = self._sumar_puntos(0, 1)
+                reward = delta
+            mano_terminada = True
 
         # Verificar fin de partida (15 o 30 puntos)
         if self.estado.puntos_jugador >= 30:
@@ -340,6 +350,9 @@ class TrucoGameLogic:
         elif self.estado.puntos_oponente >= 30:
             reward -= 100
             terminado = True
+
+        if mano_terminada and not terminado:
+            self.nueva_mano()
 
         return reward, terminado, info
 
@@ -405,19 +418,19 @@ class TrucoGameLogic:
         reward = 0
         if acepta:
             if puntos_mios > puntos_op or (puntos_mios == puntos_op and self.estado.es_mano):
-                self.estado.puntos_jugador += self.estado.envido_total
-                reward = self.estado.envido_total
+                delta = self._sumar_puntos(0, self.estado.envido_total)
+                reward = delta
             else:
-                self.estado.puntos_oponente += self.estado.envido_total
-                reward = -self.estado.envido_total
+                delta = self._sumar_puntos(1, self.estado.envido_total)
+                reward = -delta
         else:
             puntos_rechazo = max(1, self.estado.envido_total_anterior)
             if player_id == 0:
-                self.estado.puntos_oponente += puntos_rechazo
-                reward = -puntos_rechazo
+                delta = self._sumar_puntos(1, puntos_rechazo)
+                reward = -delta
             else:
-                self.estado.puntos_jugador += puntos_rechazo
-                reward = puntos_rechazo
+                delta = self._sumar_puntos(0, puntos_rechazo)
+                reward = delta
 
         self.estado.envido_finalizado = True
         self.estado.turno_responder_envido = False
@@ -479,11 +492,11 @@ class TrucoGameLogic:
         else:
             puntos_rechazo = self._puntos_rechazo_truco()
             if player_id == 0:
-                self.estado.puntos_oponente += puntos_rechazo
-                reward = -puntos_rechazo
+                delta = self._sumar_puntos(1, puntos_rechazo)
+                reward = -delta
             else:
-                self.estado.puntos_jugador += puntos_rechazo
-                reward = puntos_rechazo
+                delta = self._sumar_puntos(0, puntos_rechazo)
+                reward = delta
 
         self.estado.turno_responder_truco = False
         self.estado.estado_canto_truco = ESTADO_TRUCO_CERRADO

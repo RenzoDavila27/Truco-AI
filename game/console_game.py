@@ -22,6 +22,19 @@ def get_human_action(action_mask):
             print("Entrada inválida. Introduce un número.")
 
 
+def _calcular_tantos_envido(logic):
+    estado = logic.estado
+    puntos_j0 = logic.calcular_puntos_envido(
+        estado.mano_jugador
+        + [c[0] for c in estado.cartas_jugadas if c[1] == 0]
+    )
+    puntos_j1 = logic.calcular_puntos_envido(
+        estado.mano_oponente
+        + [c[0] for c in estado.cartas_jugadas if c[1] == 1]
+    )
+    return puntos_j0, puntos_j1
+
+
 def main(human_player, mode):
     env = TrucoEnv()
     agent = RandomAgent()
@@ -30,13 +43,7 @@ def main(human_player, mode):
     done = False
 
     while not done:
-        estado = env.logic.estado
-        if estado.turno_responder_envido:
-            player_id = 1 - estado.jugador_que_canto_envido
-        elif estado.turno_responder_truco:
-            player_id = 1 - estado.jugador_que_canto_truco
-        else:
-            player_id = estado.turno_actual
+        player_id = env.get_current_player()
         env.render(mode=mode, player_id=human_player)
 
         action_mask = env.get_action_mask(player_id)
@@ -44,6 +51,7 @@ def main(human_player, mode):
             print("No hay acciones válidas. El juego ha terminado.")
             break
 
+        envido_pendiente = env.logic.estado.turno_responder_envido
         if player_id == human_player:
             chosen_action = get_human_action(action_mask)
         else:
@@ -52,12 +60,19 @@ def main(human_player, mode):
             input("Presiona Enter para continuar...")
 
         _, reward, done, _, _ = env.step(chosen_action, player_id)
+        if (
+            envido_pendiente
+            and chosen_action == Acciones.QUIERO.value
+            and not env.logic.estado.turno_responder_envido
+        ):
+            puntos_j0, puntos_j1 = _calcular_tantos_envido(env.logic)
+            print(f"Tantos envido: J0 {puntos_j0} | J1 {puntos_j1}")
         print(f"\nRecompensa (perspectiva jugador 0): {reward}")
         if player_id == human_player:
             input("Presiona Enter para continuar...")
 
     print("\n¡Juego terminado!")
-    env.render(mode="debug", player_id=human_player)
+    env.render(mode=mode, player_id=human_player)
 
 
 if __name__ == "__main__":
