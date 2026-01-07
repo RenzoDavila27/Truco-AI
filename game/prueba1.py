@@ -1,5 +1,5 @@
-from game.truco_env import TrucoEnv
-from game.constantes import Acciones
+from truco_env import TrucoEnv
+from constantes import Acciones
 
 env = TrucoEnv()
 obs, info = env.reset()

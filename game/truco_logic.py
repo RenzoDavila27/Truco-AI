@@ -45,6 +45,10 @@ class EstadoTruco:
         self.turno_responder_envido = False
         self.turno_responder_truco = False
         self.estado_canto_truco = ESTADO_TRUCO_NO_CANTADO
+        self.jugador_que_canto_envido = None
+        self.jugador_que_canto_truco = None
+        self.jugador_que_acepto_truco = None
+        self.turno_post_envido = None
 
         self.rondas_ganadas_jugador = 0
         self.rondas_ganadas_oponente = 0
@@ -85,6 +89,10 @@ class TrucoGameLogic:
         self.estado.turno_responder_envido = False
         self.estado.turno_responder_truco = False
         self.estado.estado_canto_truco = ESTADO_TRUCO_NO_CANTADO
+        self.estado.jugador_que_canto_envido = None
+        self.estado.jugador_que_canto_truco = None
+        self.estado.jugador_que_acepto_truco = None
+        self.estado.turno_post_envido = None
         
         self.estado.rondas_ganadas_jugador = 0
         self.estado.rondas_ganadas_oponente = 0
@@ -178,13 +186,17 @@ class TrucoGameLogic:
             if ganadas_o == 1 and empatadas == 1:
                 return ganador_ultima_no_empate
             if empatadas == 2:
-                return 0 if self.estado.es_mano else 1
+                return None
 
         if rondas_jugadas >= 3:
             if ganadas_j > ganadas_o:
                 return 0
             if ganadas_o > ganadas_j:
                 return 1
+            if empatadas == 3:
+                return 0 if self.estado.es_mano else 1
+            if ganador_ultima_no_empate is not None:
+                return ganador_ultima_no_empate
             return 0 if self.estado.es_mano else 1
 
         return None
@@ -194,7 +206,7 @@ class TrucoGameLogic:
             return 1
         return self.estado.nivel_truco + 1
 
-    def aplicar_accion(self, accion_idx):
+    def aplicar_accion(self, accion_idx, player_id):
         """
         Procesa la acción recibida desde el entorno.
         Retorna: (reward, terminado, info)
@@ -205,37 +217,50 @@ class TrucoGameLogic:
 
         # Mapeo inverso para legibilidad
         accion = Acciones(accion_idx)
+        if player_id != self.estado.turno_actual:
+            return -5, False, {"error": "No es el turno del jugador."}
 
         # ---------------------------------------------------------
         # LÓGICA DE JUGAR CARTAS (Nivel Operativo: check)
         # ---------------------------------------------------------
         if accion in [Acciones.JUGAR_CARTA_1, Acciones.JUGAR_CARTA_2, Acciones.JUGAR_CARTA_3]:
             idx = accion.value # 0, 1 o 2
-            
+            if self.estado.turno_responder_envido or self.estado.turno_responder_truco:
+                return -5, False, {"error": "Hay un canto pendiente de respuesta."}
+
             # Verificar si la carta existe (no se jugó ya)
-            if idx < len(self.estado.mano_jugador):
-                carta_jugada = self.estado.mano_jugador.pop(idx)
+            mano = self.estado.mano_jugador if player_id == 0 else self.estado.mano_oponente
+            if idx < len(mano):
+                carta_jugada = mano.pop(idx)
                 
                 # Agregar a mesa
-                self.estado.cartas_jugadas.append((carta_jugada, 0)) # 0 es ID jugador
+                self.estado.cartas_jugadas.append((carta_jugada, player_id))
                 
-                # CAMBIO DE TURNO (Simplificado)
-                self.estado.turno_actual = 1 
-                
-                # AQUÍ DEBERÍA JUGAR EL OPONENTE (Simulado)
-                # En un entorno real, el step() llamaría al agente oponente.
-                # Por ahora, hacemos que el oponente juegue random inmediatamente
-                if self.estado.mano_oponente:
-                    carta_op = self.estado.mano_oponente.pop(0)
-                    self.estado.cartas_jugadas.append((carta_op, 1))
-                    
-                    # Evaluar quien gano la vuelta
-                    ganador = self.determinar_ganador_mano(carta_jugada, carta_op)
+                # Cambia turno al otro jugador
+                self.estado.turno_actual = 1 - player_id
+
+                # Resolver la vuelta cuando ambos jugaron una carta
+                if len(self.estado.cartas_jugadas) % 2 == 0:
+                    carta_j, jugador_j = self.estado.cartas_jugadas[-2]
+                    carta_op, jugador_op = self.estado.cartas_jugadas[-1]
+                    resultado = self.determinar_ganador_mano(carta_j, carta_op)
+                    if resultado == 0:
+                        ganador = jugador_j
+                    elif resultado == 1:
+                        ganador = jugador_op
+                    else:
+                        ganador = 2
+
                     self._registrar_resultado_ronda(ganador)
                     if ganador == 0:
-                        reward = 0.5 # Pequena recompensa por ganar mano
-                    
-                    self.estado.turno_actual = 0 # Vuelve a mi
+                        reward = 0.5
+                    elif ganador == 1:
+                        reward = -0.5
+
+                    if ganador == 2:
+                        self.estado.turno_actual = 0 if self.estado.es_mano else 1
+                    else:
+                        self.estado.turno_actual = ganador
                     self.estado.numero_ronda += 1
 
                     ganador_mano = self._ganador_mano_completa()
@@ -264,41 +289,47 @@ class TrucoGameLogic:
                 if (
                     self.estado.numero_ronda == 1
                     and self.estado.estado_canto_envido == ESTADO_NO_CANTADO
-                    and self.estado.nivel_truco > 0
+                    and self.estado.turno_responder_truco
                 ):
-                    self.estado.nivel_truco = 0
+                    self.estado.turno_post_envido = self.estado.jugador_que_canto_truco
                     self.estado.turno_responder_truco = False
                     self.estado.estado_canto_truco = ESTADO_TRUCO_NO_CANTADO
+                    self.estado.jugador_que_canto_truco = None
+                    self.estado.jugador_que_acepto_truco = None
                         
-                self._aplicar_canto_envido(accion)
+                self._aplicar_canto_envido(accion, player_id)
                 reward = 0
 
         elif accion in [Acciones.TRUCO, Acciones.RETRUCO, Acciones.VALE_CUATRO]:
             if not self._puede_cantar_truco():
                 reward = -5
-            elif not self._validar_canto_truco(accion):
+            elif not self._validar_canto_truco(accion, player_id):
                 reward = -5
             else:
-                self._aplicar_canto_truco(accion)
+                self._aplicar_canto_truco(accion, player_id)
                 reward = 0
 
         elif accion == Acciones.QUIERO:
             if self.estado.turno_responder_envido:
-                reward += self._resolver_envido(acepta=True)
+                reward += self._resolver_envido(acepta=True, player_id=player_id)
             elif self.estado.turno_responder_truco:
-                reward += self._resolver_truco(acepta=True)
+                reward += self._resolver_truco(acepta=True, player_id=player_id)
 
         elif accion == Acciones.NO_QUIERO:
             if self.estado.turno_responder_envido:
-                reward += self._resolver_envido(acepta=False)
+                reward += self._resolver_envido(acepta=False, player_id=player_id)
             elif self.estado.turno_responder_truco:
-                reward += self._resolver_truco(acepta=False)
+                reward += self._resolver_truco(acepta=False, player_id=player_id)
                 terminado = True
 
         elif accion == Acciones.IR_AL_MAZO:
-            self.estado.puntos_oponente += 1
+            if player_id == 0:
+                self.estado.puntos_oponente += 1
+                reward = -1
+            else:
+                self.estado.puntos_jugador += 1
+                reward = 1
             terminado = True
-            reward = -1
 
         # Verificar fin de partida (15 o 30 puntos)
         if self.estado.puntos_jugador >= 30:
@@ -311,7 +342,11 @@ class TrucoGameLogic:
         return reward, terminado, info
 
     def _puede_cantar_envido(self):
-        return self.estado.numero_ronda == 1 and not self.estado.envido_finalizado
+        return (
+            self.estado.numero_ronda == 1
+            and not self.estado.envido_finalizado
+            and self.estado.nivel_truco == 0
+        )
 
     def _validar_canto_envido(self, accion):
         estado_actual = self.estado.estado_canto_envido
@@ -325,7 +360,7 @@ class TrucoGameLogic:
             return estado_actual != ESTADO_CERRADO
         return False
 
-    def _aplicar_canto_envido(self, accion):
+    def _aplicar_canto_envido(self, accion, player_id):
         self.estado.envido_total_anterior = self.estado.envido_total
         estado_actual = self.estado.estado_canto_envido
 
@@ -348,13 +383,15 @@ class TrucoGameLogic:
             self.estado.estado_canto_envido = ESTADO_FALTA_ENVIDO
 
         self.estado.turno_responder_envido = True
+        self.estado.jugador_que_canto_envido = player_id
+        self.estado.turno_actual = 1 - player_id
 
     def _calcular_falta_envido(self):
         objetivo = 30
         puntos_falta = objetivo - max(self.estado.puntos_jugador, self.estado.puntos_oponente)
         return max(1, puntos_falta)
 
-    def _resolver_envido(self, acepta):
+    def _resolver_envido(self, acepta, player_id):
         puntos_mios = self.calcular_puntos_envido(
             self.estado.mano_jugador
             + [c[0] for c in self.estado.cartas_jugadas if c[1] == 0]
@@ -374,28 +411,53 @@ class TrucoGameLogic:
                 reward = -self.estado.envido_total
         else:
             puntos_rechazo = max(1, self.estado.envido_total_anterior)
-            self.estado.puntos_oponente += puntos_rechazo
-            reward = -puntos_rechazo
+            if player_id == 0:
+                self.estado.puntos_oponente += puntos_rechazo
+                reward = -puntos_rechazo
+            else:
+                self.estado.puntos_jugador += puntos_rechazo
+                reward = puntos_rechazo
 
         self.estado.envido_finalizado = True
         self.estado.turno_responder_envido = False
         self.estado.estado_canto_envido = ESTADO_CERRADO
+        if self.estado.turno_post_envido is not None:
+            self.estado.turno_actual = self.estado.turno_post_envido
+            self.estado.turno_post_envido = None
+        elif self.estado.jugador_que_canto_envido is not None:
+            self.estado.turno_actual = self.estado.jugador_que_canto_envido
         return reward
 
     def _puede_cantar_truco(self):
         return not self.estado.turno_responder_envido
 
-    def _validar_canto_truco(self, accion):
+    def _validar_canto_truco(self, accion, player_id):
         estado_actual = self.estado.estado_canto_truco
         if accion == Acciones.TRUCO:
-            return estado_actual == ESTADO_TRUCO_NO_CANTADO and not self.estado.turno_responder_truco
+            return (
+                estado_actual == ESTADO_TRUCO_NO_CANTADO
+                and not self.estado.turno_responder_truco
+                and self.estado.nivel_truco == 0
+            )
         if accion == Acciones.RETRUCO:
-            return estado_actual == ESTADO_TRUCO and self.estado.turno_responder_truco
+            if estado_actual == ESTADO_TRUCO and self.estado.turno_responder_truco:
+                return True
+            return (
+                not self.estado.turno_responder_truco
+                and self.estado.nivel_truco == 1
+                and self.estado.jugador_que_acepto_truco == player_id
+            )
         if accion == Acciones.VALE_CUATRO:
-            return estado_actual == ESTADO_RETRUCO and self.estado.turno_responder_truco
+            if estado_actual == ESTADO_RETRUCO and self.estado.turno_responder_truco:
+                return True
+            return (
+                not self.estado.turno_responder_truco
+                and self.estado.nivel_truco == 2
+                and self.estado.jugador_que_acepto_truco == player_id
+            )
         return False
 
-    def _aplicar_canto_truco(self, accion):
+    def _aplicar_canto_truco(self, accion, player_id):
         if accion == Acciones.TRUCO:
             self.estado.estado_canto_truco = ESTADO_TRUCO
         elif accion == Acciones.RETRUCO:
@@ -404,19 +466,28 @@ class TrucoGameLogic:
             self.estado.estado_canto_truco = ESTADO_VALE_CUATRO
 
         self.estado.turno_responder_truco = True
+        self.estado.jugador_que_canto_truco = player_id
+        self.estado.turno_actual = 1 - player_id
 
-    def _resolver_truco(self, acepta):
+    def _resolver_truco(self, acepta, player_id):
         reward = 0
         nivel_truco = self._nivel_truco_desde_estado()
         if acepta:
             self.estado.nivel_truco = nivel_truco
+            self.estado.jugador_que_acepto_truco = player_id
         else:
             puntos_rechazo = self._puntos_rechazo_truco()
-            self.estado.puntos_oponente += puntos_rechazo
-            reward = -puntos_rechazo
+            if player_id == 0:
+                self.estado.puntos_oponente += puntos_rechazo
+                reward = -puntos_rechazo
+            else:
+                self.estado.puntos_jugador += puntos_rechazo
+                reward = puntos_rechazo
 
         self.estado.turno_responder_truco = False
         self.estado.estado_canto_truco = ESTADO_TRUCO_CERRADO
+        if self.estado.jugador_que_canto_truco is not None:
+            self.estado.turno_actual = self.estado.jugador_que_canto_truco
         return reward
 
     def _nivel_truco_desde_estado(self):
@@ -435,13 +506,10 @@ class TrucoGameLogic:
             return 2
         return 1
 
-    def validar_canto_truco(self):
-        return (
-            self._puede_cantar_truco()
-            and self.estado.estado_canto_truco == ESTADO_TRUCO_NO_CANTADO
-        )
+    def validar_canto_truco(self, player_id):
+        return self._validar_canto_truco(Acciones.TRUCO, player_id)
 
-    def get_action_mask(self):
+    def get_action_mask(self, player_id):
         """
         Devuelve una lista de booleanos indicando que acciones son validas
         en el estado actual.
@@ -449,6 +517,8 @@ class TrucoGameLogic:
         """
         # Inicializamos todo en False (nada permitido por defecto)
         mask = [False] * len(Acciones)
+        if player_id != self.estado.turno_actual:
+            return mask
         
         # ----------------------------------------------------
         # 1. MASCARA PARA JUGAR CARTAS
@@ -459,9 +529,10 @@ class TrucoGameLogic:
                                 self.estado.turno_responder_truco)
         
         if not hay_desafio_pendiente:
-            if 0 < len(self.estado.mano_jugador): mask[Acciones.JUGAR_CARTA_1.value] = True
-            if 1 < len(self.estado.mano_jugador): mask[Acciones.JUGAR_CARTA_2.value] = True
-            if 2 < len(self.estado.mano_jugador): mask[Acciones.JUGAR_CARTA_3.value] = True
+            mano = self.estado.mano_jugador if player_id == 0 else self.estado.mano_oponente
+            if 0 < len(mano): mask[Acciones.JUGAR_CARTA_1.value] = True
+            if 1 < len(mano): mask[Acciones.JUGAR_CARTA_2.value] = True
+            if 2 < len(mano): mask[Acciones.JUGAR_CARTA_3.value] = True
         
         # ----------------------------------------------------
         # 1b. MASCARA PARA TRUCO
@@ -474,18 +545,32 @@ class TrucoGameLogic:
                 mask[Acciones.VALE_CUATRO.value] = True
             mask[Acciones.QUIERO.value] = True
             mask[Acciones.NO_QUIERO.value] = True
-        elif self.validar_canto_truco():
-            mask[Acciones.TRUCO.value] = True
-            # (Agregar logica similar para Retruco/Vale4 segun corresponda)
+        elif self.estado.turno_responder_envido:
+            mask[Acciones.QUIERO.value] = True
+            mask[Acciones.NO_QUIERO.value] = True
+        else:
+            if self.validar_canto_truco(player_id):
+                mask[Acciones.TRUCO.value] = True
+            if self._validar_canto_truco(Acciones.RETRUCO, player_id):
+                mask[Acciones.RETRUCO.value] = True
+            if self._validar_canto_truco(Acciones.VALE_CUATRO, player_id):
+                mask[Acciones.VALE_CUATRO.value] = True
 
         # ----------------------------------------------------
         # 2. MASCARA PARA EL ENVIDO (Tu pregunta especifica)
         # ----------------------------------------------------
         # El envido solo se canta en la primera ronda y antes de jugar cartas (generalmente)
-        if self.estado.numero_ronda == 1 and not self.estado.envido_finalizado:
+        if self._puede_cantar_envido():
             
             estado_actual = self.estado.estado_canto_envido
             responder_envido = self.estado.turno_responder_envido
+            puede_interrumpir_truco = (
+                self.estado.turno_responder_truco
+                and self.estado.nivel_truco == 0
+                and not self.estado.envido_finalizado
+            )
+            if self.estado.turno_responder_truco and not puede_interrumpir_truco:
+                return mask
 
             # CASO A: Nadie canto nada aun (Piso 0)
             # "se puede cantar envido, real o falta, sin haber cantado el anterior"

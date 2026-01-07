@@ -89,7 +89,7 @@ class TrucoEnv(gym.Env):
         info = {}
         return self.state, info
 
-    def step(self, action):
+    def step(self, action, player_id=None):
         """
         Ejecuta una accion.
         action: int (indice del Enum Acciones)
@@ -97,19 +97,45 @@ class TrucoEnv(gym.Env):
         # 1. Validar accion (usando Action Masking en el futuro)
         # 2. Comunicar accion al Motor de Reglas
         # 3. Obtener nuevo estado, recompensa y flags del Motor
-        reward, terminated, _ = self.logic.aplicar_accion(action)
+        if player_id is None:
+            player_id = self.logic.estado.turno_actual
+        reward, terminated, _ = self.logic.aplicar_accion(action, player_id)
         self.state = self._estado_a_observacion()
         truncated = False
 
         info = {}
         return self.state, reward, terminated, truncated, info
 
-    def render(self):
-        # Muestra simple del estado en texto
-        print(f"--- Ronda {self.state[8]} ---")
-        print(f"Mis Cartas (Rank): {self.state[0:3]}")
-        print(f"Puntos: {self.state[6]} vs {self.state[7]}")
-        print(f"Truco Lvl: {self.state[10]} | Envido Lvl: {self.state[11]}")
+    def render(self, mode="human", player_id=0):
+        """
+        Renderiza el estado en texto.
+        mode: "human" oculta la mano del rival, "debug" muestra todo.
+        """
+        estado = self.logic.estado
+        palos = {0: "Espada", 1: "Basto", 2: "Oro", 3: "Copa"}
+
+        def format_hand(mano):
+            return [f"{c[0]}-{palos.get(c[1], c[1])}" for c in mano]
+
+        mano_jugador = format_hand(estado.mano_jugador)
+        mano_oponente = format_hand(estado.mano_oponente)
+
+        print(f"--- Ronda {estado.numero_ronda} ---")
+        if mode == "debug":
+            print(f"Mano Jugador 0: {mano_jugador}")
+            print(f"Mano Jugador 1: {mano_oponente}")
+        else:
+            if player_id == 0:
+                print(f"Tu mano: {mano_jugador}")
+                print(f"Mano rival: {['?'] * len(estado.mano_oponente)}")
+            else:
+                print(f"Tu mano: {mano_oponente}")
+                print(f"Mano rival: {['?'] * len(estado.mano_jugador)}")
+
+        print(f"Cartas jugadas: {estado.cartas_jugadas}")
+        print(f"Puntos: J0 {estado.puntos_jugador} pts | J1 {estado.puntos_oponente} pts")
+        print(f"Turno actual: {estado.turno_actual}")
+        print(f"Truco Lvl: {estado.nivel_truco} | Envido Lvl: {self._nivel_envido_desde_estado(estado)}")
 
     def close(self):
         pass
@@ -145,3 +171,8 @@ class TrucoEnv(gym.Env):
         if estado.estado_canto_envido in [ESTADO_ENVIDO, ESTADO_ENVIDO_ENVIDO]:
             return 1
         return 0
+
+    def get_action_mask(self, player_id=None):
+        if player_id is None:
+            player_id = self.logic.estado.turno_actual
+        return self.logic.get_action_mask(player_id)
