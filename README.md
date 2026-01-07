@@ -32,6 +32,7 @@ truco_ent\\Scripts\\Activate.ps1
 - `game/truco_env.py`: Wrapper tipo Gymnasium que expone `reset`, `step` y `get_action_mask`.
 - `game/agents/random_agent.py`: Agente aleatorio que elige acciones validas.
 - `game/console_game.py`: Juego 1v1 por consola (humano vs agente).
+- `game/agent_vs_agent.py`: Partida completa entre agentes.
 - `game/jugadas_prueba.txt`: Secuencias de jugadas para validar reglas y turnos.
 - `readmeDesafio.md`: Documento original del desafio y contexto teorico.
 
@@ -54,6 +55,20 @@ python3 game/console_game.py --mode debug
 ```
 
 Durante la partida, el juego imprime las acciones validas y el estado actual. El rival (agente) juega automaticamente cuando le corresponde.
+
+## Agente vs agente
+
+Simula una partida completa entre dos agentes, random vs random por ahora:
+
+```bash
+python3 game/agent_vs_agent.py
+```
+
+Con render opcional:
+
+```bash
+python3 game/agent_vs_agent.py --render debug
+```
 
 ## Notas
 
