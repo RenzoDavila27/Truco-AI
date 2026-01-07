@@ -30,7 +30,13 @@ def main(human_player, mode):
     done = False
 
     while not done:
-        player_id = env.logic.estado.turno_actual
+        estado = env.logic.estado
+        if estado.turno_responder_envido:
+            player_id = 1 - estado.jugador_que_canto_envido
+        elif estado.turno_responder_truco:
+            player_id = 1 - estado.jugador_que_canto_truco
+        else:
+            player_id = estado.turno_actual
         env.render(mode=mode, player_id=human_player)
 
         action_mask = env.get_action_mask(player_id)

@@ -114,8 +114,14 @@ class TrucoEnv(gym.Env):
         estado = self.logic.estado
         palos = {0: "Espada", 1: "Basto", 2: "Oro", 3: "Copa"}
 
+        def format_card(carta):
+            return f"{carta[0]}-{palos.get(carta[1], carta[1])}"
+
         def format_hand(mano):
-            return [f"{c[0]}-{palos.get(c[1], c[1])}" for c in mano]
+            return [format_card(c) for c in mano]
+
+        def format_played(cartas_jugadas):
+            return [f"({format_card(c)}, J{jugador_id})" for c, jugador_id in cartas_jugadas]
 
         mano_jugador = format_hand(estado.mano_jugador)
         mano_oponente = format_hand(estado.mano_oponente)
@@ -127,12 +133,19 @@ class TrucoEnv(gym.Env):
         else:
             if player_id == 0:
                 print(f"Tu mano: {mano_jugador}")
-                print(f"Mano rival: {['?'] * len(estado.mano_oponente)}")
+                rival_id = 1
             else:
                 print(f"Tu mano: {mano_oponente}")
-                print(f"Mano rival: {['?'] * len(estado.mano_jugador)}")
+                rival_id = 0
 
-        print(f"Cartas jugadas: {estado.cartas_jugadas}")
+            mano_rival = ["?"] * 3
+            cartas_rival = [c for c, j in estado.cartas_jugadas if j == rival_id]
+            for i, carta in enumerate(cartas_rival[:3]):
+                mano_rival[i] = format_card(carta)
+
+            print(f"Mano rival: {mano_rival}")
+
+        print(f"Cartas jugadas: {format_played(estado.cartas_jugadas)}")
         print(f"Puntos: J0 {estado.puntos_jugador} pts | J1 {estado.puntos_oponente} pts")
         print(f"Turno actual: {estado.turno_actual}")
         print(f"Truco Lvl: {estado.nivel_truco} | Envido Lvl: {self._nivel_envido_desde_estado(estado)}")

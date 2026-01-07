@@ -48,7 +48,6 @@ class EstadoTruco:
         self.jugador_que_canto_envido = None
         self.jugador_que_canto_truco = None
         self.jugador_que_acepto_truco = None
-        self.turno_post_envido = None
 
         self.rondas_ganadas_jugador = 0
         self.rondas_ganadas_oponente = 0
@@ -92,7 +91,6 @@ class TrucoGameLogic:
         self.estado.jugador_que_canto_envido = None
         self.estado.jugador_que_canto_truco = None
         self.estado.jugador_que_acepto_truco = None
-        self.estado.turno_post_envido = None
         
         self.estado.rondas_ganadas_jugador = 0
         self.estado.rondas_ganadas_oponente = 0
@@ -143,7 +141,6 @@ class TrucoGameLogic:
         """
         Compara dos cartas. 
         Retorna: 0 si gana Jugador, 1 si gana Oponente, 2 si es Empate (Parda).
-        Nota: En el readme, menor ranking es mejor carta (1 gana a 14).
         """
         rank_j = self.obtener_ranking(carta_j)
         rank_op = self.obtener_ranking(carta_op)
@@ -217,7 +214,13 @@ class TrucoGameLogic:
 
         # Mapeo inverso para legibilidad
         accion = Acciones(accion_idx)
-        if player_id != self.estado.turno_actual:
+        if self.estado.turno_responder_envido:
+            jugador_esperado = 1 - self.estado.jugador_que_canto_envido
+        elif self.estado.turno_responder_truco:
+            jugador_esperado = 1 - self.estado.jugador_que_canto_truco
+        else:
+            jugador_esperado = self.estado.turno_actual
+        if player_id != jugador_esperado:
             return -5, False, {"error": "No es el turno del jugador."}
 
         # ---------------------------------------------------------
@@ -291,7 +294,6 @@ class TrucoGameLogic:
                     and self.estado.estado_canto_envido == ESTADO_NO_CANTADO
                     and self.estado.turno_responder_truco
                 ):
-                    self.estado.turno_post_envido = self.estado.jugador_que_canto_truco
                     self.estado.turno_responder_truco = False
                     self.estado.estado_canto_truco = ESTADO_TRUCO_NO_CANTADO
                     self.estado.jugador_que_canto_truco = None
@@ -384,7 +386,6 @@ class TrucoGameLogic:
 
         self.estado.turno_responder_envido = True
         self.estado.jugador_que_canto_envido = player_id
-        self.estado.turno_actual = 1 - player_id
 
     def _calcular_falta_envido(self):
         objetivo = 30
@@ -421,11 +422,6 @@ class TrucoGameLogic:
         self.estado.envido_finalizado = True
         self.estado.turno_responder_envido = False
         self.estado.estado_canto_envido = ESTADO_CERRADO
-        if self.estado.turno_post_envido is not None:
-            self.estado.turno_actual = self.estado.turno_post_envido
-            self.estado.turno_post_envido = None
-        elif self.estado.jugador_que_canto_envido is not None:
-            self.estado.turno_actual = self.estado.jugador_que_canto_envido
         return reward
 
     def _puede_cantar_truco(self):
@@ -462,12 +458,17 @@ class TrucoGameLogic:
             self.estado.estado_canto_truco = ESTADO_TRUCO
         elif accion == Acciones.RETRUCO:
             self.estado.estado_canto_truco = ESTADO_RETRUCO
+            if self.estado.turno_responder_truco:
+                self.estado.nivel_truco = 1
+                self.estado.jugador_que_acepto_truco = player_id
         elif accion == Acciones.VALE_CUATRO:
             self.estado.estado_canto_truco = ESTADO_VALE_CUATRO
+            if self.estado.turno_responder_truco:
+                self.estado.nivel_truco = 2
+                self.estado.jugador_que_acepto_truco = player_id
 
         self.estado.turno_responder_truco = True
         self.estado.jugador_que_canto_truco = player_id
-        self.estado.turno_actual = 1 - player_id
 
     def _resolver_truco(self, acepta, player_id):
         reward = 0
@@ -486,8 +487,6 @@ class TrucoGameLogic:
 
         self.estado.turno_responder_truco = False
         self.estado.estado_canto_truco = ESTADO_TRUCO_CERRADO
-        if self.estado.jugador_que_canto_truco is not None:
-            self.estado.turno_actual = self.estado.jugador_que_canto_truco
         return reward
 
     def _nivel_truco_desde_estado(self):
@@ -517,7 +516,13 @@ class TrucoGameLogic:
         """
         # Inicializamos todo en False (nada permitido por defecto)
         mask = [False] * len(Acciones)
-        if player_id != self.estado.turno_actual:
+        if self.estado.turno_responder_envido:
+            jugador_esperado = 1 - self.estado.jugador_que_canto_envido
+        elif self.estado.turno_responder_truco:
+            jugador_esperado = 1 - self.estado.jugador_que_canto_truco
+        else:
+            jugador_esperado = self.estado.turno_actual
+        if player_id != jugador_esperado:
             return mask
         
         # ----------------------------------------------------
@@ -545,10 +550,7 @@ class TrucoGameLogic:
                 mask[Acciones.VALE_CUATRO.value] = True
             mask[Acciones.QUIERO.value] = True
             mask[Acciones.NO_QUIERO.value] = True
-        elif self.estado.turno_responder_envido:
-            mask[Acciones.QUIERO.value] = True
-            mask[Acciones.NO_QUIERO.value] = True
-        else:
+        elif not self.estado.turno_responder_envido:
             if self.validar_canto_truco(player_id):
                 mask[Acciones.TRUCO.value] = True
             if self._validar_canto_truco(Acciones.RETRUCO, player_id):
@@ -557,10 +559,10 @@ class TrucoGameLogic:
                 mask[Acciones.VALE_CUATRO.value] = True
 
         # ----------------------------------------------------
-        # 2. MASCARA PARA EL ENVIDO (Tu pregunta especifica)
+        # 2. MASCARA PARA EL ENVIDO
         # ----------------------------------------------------
         # El envido solo se canta en la primera ronda y antes de jugar cartas (generalmente)
-        if self._puede_cantar_envido():
+        if self._puede_cantar_envido() or self.estado.turno_responder_envido:
             
             estado_actual = self.estado.estado_canto_envido
             responder_envido = self.estado.turno_responder_envido

@@ -1,0 +1,32 @@
+Caso 1: Truco, retruco y aceptacion sin cambio de turno
+1) Turno J0. J0 canta TRUCO.
+2) Responde J1: RETRUCO.
+3) Responde J0: QUIERO.
+Esperado: sigue siendo turno de J0 (no se tiro carta aun).
+
+Caso 2: Envido cancela truco en primera ronda
+1) Turno J0. J0 canta TRUCO.
+2) Responde J1 con ENVIDO (cancela el truco pendiente).
+3) Responde J0 con QUIERO.
+Esperado: sigue siendo turno de J0.
+
+Caso 3: Cambio de turno solo por cartas
+1) Turno J0. J0 juega carta.
+2) Turno J1. J1 juega carta y gana la vuelta.
+Esperado: turno de la siguiente vuelta es J1.
+
+Caso 4: Empate de vuelta
+1) Turno J0. J0 juega carta.
+2) Turno J1. J1 juega carta y empatan.
+Esperado: siguiente vuelta empieza el jugador mano.
+
+Caso 5: Cierre en dos vueltas
+1) J1 gana primera vuelta.
+2) J1 gana segunda vuelta.
+Esperado: la mano termina, no se juega tercera.
+
+Caso 6: Triple empate
+1) Vuelta 1 empate.
+2) Vuelta 2 empate.
+3) Vuelta 3 empate.
+Esperado: gana el jugador mano.
