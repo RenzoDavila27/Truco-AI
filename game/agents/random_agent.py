@@ -1,7 +1,7 @@
 import numpy as np
 
 class RandomAgent:
-    def choose_action(self, action_mask):
+    def choose_action(self, action_mask, env=None, player_id=0):
         """
         Chooses a random valid action from the action mask.
         """

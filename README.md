@@ -6,8 +6,8 @@ Proyecto de Truco Argentino (1v1, sin flor) con un motor de reglas, un entorno t
 
 - Motor de reglas de Truco (rondas, puntos, envido, truco y niveles de apuesta).
 - Entorno estilo Gymnasium para entrenamiento o self-play.
-- Agente aleatorio de ejemplo.
-- Juego por consola humano vs agente.
+- Agentes random y racional.
+- Juego por consola humano vs agente configurable.
 
 ## Requisitos
 
@@ -31,8 +31,10 @@ truco_ent\\Scripts\\Activate.ps1
 - `game/truco_logic.py`: Motor de reglas y estado del juego (turnos, rondas, cantos, puntajes).
 - `game/truco_env.py`: Wrapper tipo Gymnasium que expone `reset`, `step` y `get_action_mask`.
 - `game/agents/random_agent.py`: Agente aleatorio que elige acciones validas.
-- `game/console_game.py`: Juego 1v1 por consola (humano vs agente).
-- `game/agent_vs_agent.py`: Partida completa entre agentes.
+- `game/agents/rational_agent.py`: Agente con reglas deterministicas (envido/truco/cartas).
+- `game/agents/registry.py`: Registro de agentes disponibles.
+- `game/console_game.py`: Juego 1v1 por consola (humano vs agente configurable).
+- `game/agent_vs_agent.py`: Partida completa entre agentes configurables.
 - `game/jugadas_prueba.txt`: Secuencias de jugadas para validar reglas y turnos.
 - `readmeDesafio.md`: Documento original del desafio y contexto teorico.
 
@@ -52,21 +54,32 @@ python3 game/console_game.py --human-player 1
 
 # Ver todo el estado (modo debug)
 python3 game/console_game.py --mode debug
+
+# Elegir el agente rival
+python3 game/console_game.py --agent random
 ```
 
 Durante la partida, el juego imprime las acciones validas y el estado actual. El rival (agente) juega automaticamente cuando le corresponde.
 
+Agentes disponibles (ver `game/agents/registry.py`):
+- `random`: elige acciones validas al azar.
+- `rational`: reglas deterministicas para envido, truco y eleccion de cartas.
+
 ## Agente vs agente
 
-Simula una partida completa entre dos agentes, random vs random por ahora:
+Simula una partida completa entre dos agentes:
 
 ```bash
 python3 game/agent_vs_agent.py
 ```
 
-Con render opcional:
+Opciones utiles:
 
 ```bash
+# Elegir agentes para J0 y J1
+python3 game/agent_vs_agent.py --agent-0 rational --agent-1 random
+
+# Ver todo el estado (modo debug)
 python3 game/agent_vs_agent.py --render debug
 ```
 
