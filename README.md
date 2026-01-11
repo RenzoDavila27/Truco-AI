@@ -64,7 +64,7 @@ Durante la partida, el juego imprime las acciones validas y el estado actual. El
 Agentes disponibles (ver `game/agents/registry.py`):
 - `random`: elige acciones validas al azar.
 - `rational`: reglas deterministicas para envido, truco y eleccion de cartas.
-
+- `q_learning`: toma la decision segun su q_table (si es vacia o no existe el archivo, tomara decisiones greedy)
 ## Agente vs agente
 
 Simula una partida completa entre dos agentes:
@@ -82,6 +82,36 @@ python3 game/agent_vs_agent.py --agent-0 rational --agent-1 random
 # Ver todo el estado (modo debug)
 python3 game/agent_vs_agent.py --render debug
 ```
+
+## Agente Q-Learning (RL)
+
+El agente Q-Learning esta en `game/agents/RL-Agents/agent_q_learning.py`. Usa una Q-Table persistida en `game/agents/RL-Agents/q_tables/q_table.pkl` para elegir acciones de forma greedy (explotacion).
+
+### Entrenamiento (self-play)
+
+Entrena al agente jugando contra si mismo:
+
+```bash
+python3 game/agents/RL-Agents/train_q_learning.py --episodes 1000
+```
+
+Opciones utiles:
+
+```bash
+python3 game/agents/RL-Agents/train_q_learning.py --episodes 5000 --alpha 0.1 --gamma 0.95 --epsilon 0.1
+```
+
+Si el entrenamiento se cancela con Ctrl+C, la Q-Table se guarda automaticamente.
+
+### Uso en consola
+
+Para jugar contra el agente entrenado:
+
+```bash
+python3 game/console_game.py --agent q_learning
+```
+
+La tabla se carga automaticamente al iniciar el agente. Si no existe, juega con valores Q en cero (comportamiento casi aleatorio).
 
 ## Notas
 
