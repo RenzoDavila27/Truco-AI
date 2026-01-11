@@ -64,33 +64,36 @@ def train(episodes, alpha, gamma, epsilon):
     env = TrucoEnv()
     agent = QLearningAgent(q_table_path=QTABLE_PATH)
 
-    for _ in range(episodes):
-        env.reset()
-        done = False
+    try:
+        for _ in range(episodes):
+            env.reset()
+            done = False
 
-        while not done:
-            player_id = env.get_current_player()
-            action_mask = env.get_action_mask(player_id)
-            if not any(action_mask):
-                break
+            while not done:
+                player_id = env.get_current_player()
+                action_mask = env.get_action_mask(player_id)
+                if not any(action_mask):
+                    break
 
-            state = agent.encode_state(env, player_id)
-            action = _epsilon_greedy(agent.q_table, state, action_mask, epsilon)
-            if action is None:
-                break
+                state = agent.encode_state(env, player_id)
+                action = _epsilon_greedy(agent.q_table, state, action_mask, epsilon)
+                if action is None:
+                    break
 
-            _, reward, done, _, _ = env.step(action, player_id)
-            if player_id == 1:
-                reward = -reward
+                _, reward, done, _, _ = env.step(action, player_id)
+                if player_id == 1:
+                    reward = -reward
 
-            next_state = agent.encode_state(env, player_id)
-            next_mask = env.get_action_mask(player_id)
-            max_next = _max_q_for_state(agent.q_table, next_state, next_mask)
-            old_q = _get_q(agent.q_table, state, action)
-            new_q = old_q + alpha * (reward + gamma * max_next - old_q)
-            _set_q(agent.q_table, state, action, new_q)
-
-    _save_q_table(agent.q_table)
+                next_state = agent.encode_state(env, player_id)
+                next_mask = env.get_action_mask(player_id)
+                max_next = _max_q_for_state(agent.q_table, next_state, next_mask)
+                old_q = _get_q(agent.q_table, state, action)
+                new_q = old_q + alpha * (reward + gamma * max_next - old_q)
+                _set_q(agent.q_table, state, action, new_q)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        _save_q_table(agent.q_table)
 
 
 if __name__ == "__main__":
