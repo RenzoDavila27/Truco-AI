@@ -335,11 +335,24 @@ class TrucoGameLogic:
                 mano_terminada = True
 
         elif accion == Acciones.IR_AL_MAZO:
+            if self.estado.turno_responder_envido or self.estado.turno_responder_truco:
+                return -5, False, {"error": "Hay un canto pendiente de respuesta."}
+
+            if self.estado.nivel_truco > 0:
+                puntos = self._valor_truco_puntaje()
+            else:
+                jugador_mano = 0 if self.estado.es_mano else 1
+                envido_paso = (
+                    self.estado.envido_finalizado
+                    or self.estado.cartas_jugadas
+                    or player_id != jugador_mano
+                )
+                puntos = 1 if envido_paso else 2
             if player_id == 0:
-                delta = self._sumar_puntos(1, 1)
+                delta = self._sumar_puntos(1, puntos)
                 reward = -delta
             else:
-                delta = self._sumar_puntos(0, 1)
+                delta = self._sumar_puntos(0, puntos)
                 reward = delta
             mano_terminada = True
 
@@ -551,6 +564,7 @@ class TrucoGameLogic:
             if 0 < len(mano): mask[Acciones.JUGAR_CARTA_1.value] = True
             if 1 < len(mano): mask[Acciones.JUGAR_CARTA_2.value] = True
             if 2 < len(mano): mask[Acciones.JUGAR_CARTA_3.value] = True
+            mask[Acciones.IR_AL_MAZO.value] = True
         
         # ----------------------------------------------------
         # 1b. MASCARA PARA TRUCO
