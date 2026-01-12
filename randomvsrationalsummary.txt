@@ -1,0 +1,11 @@
+Agente J0: random
+Agente J1: rational
+Partidas: 10000
+Victorias J0: 1530
+Victorias J1: 8465
+Empates: 5
+Promedio puntos J0: 13.75
+Promedio puntos J1: 27.70
+Promedio manos jugadas: 11.59
+Promedio manos ganadas J0: 5.88
+Promedio manos ganadas J1: 5.71
