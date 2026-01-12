@@ -83,6 +83,21 @@ python3 game/agent_vs_agent.py --agent-0 rational --agent-1 random
 python3 game/agent_vs_agent.py --render debug
 ```
 
+## Matchup de agentes (estadisticas)
+
+Simula multiples partidas y guarda estadisticas en CSV y un resumen en TXT:
+
+```bash
+python3 game/agent_matchup.py --agent-0 random --agent-1 rational --games 200
+```
+
+Opciones utiles:
+
+```bash
+# Personalizar archivos de salida
+python3 game/agent_matchup.py --agent-0 q_learning --agent-1 rational --games 500 --output-csv q_learningvsrationalresults.csv --output-summary q_learningvsrationalsummary.txt
+```
+
 ## Agente Q-Learning (RL)
 
 El agente Q-Learning esta en `game/agents/RL-Agents/agent_q_learning.py`. Usa una Q-Table persistida en `game/agents/RL-Agents/q_tables/q_table.pkl` para elegir acciones de forma greedy (explotacion).

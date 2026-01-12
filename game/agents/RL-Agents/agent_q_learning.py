@@ -6,7 +6,7 @@ from constantes import Acciones
 
 class QLearningAgent:
     """
-    Agente Q-Learning (esqueleto) con encoder de estado discreto.
+    Agente Q-Learning con encoder de estado discreto.
     """
 
     def __init__(self, q_table_path=None):
@@ -30,6 +30,7 @@ class QLearningAgent:
         best_value = None
         for action in valid_actions:
             q_val = self.q_table.get((state, action), 0.0)
+            print(f"Action: {action}, Q-value: {q_val}")
             if best_value is None or q_val > best_value:
                 best_value = q_val
                 best_action = action

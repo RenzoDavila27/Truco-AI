@@ -68,6 +68,7 @@ def train(episodes, alpha, gamma, epsilon):
         for _ in range(episodes):
             env.reset()
             done = False
+            episode = []
 
             while not done:
                 player_id = env.get_current_player()
@@ -81,14 +82,14 @@ def train(episodes, alpha, gamma, epsilon):
                     break
 
                 _, reward, done, _, _ = env.step(action, player_id)
-                if player_id == 1:
-                    reward = -reward
+                episode.append((state, action, player_id, reward))
 
-                next_state = agent.encode_state(env, player_id)
-                next_mask = env.get_action_mask(player_id)
-                max_next = _max_q_for_state(agent.q_table, next_state, next_mask)
+            G = 0.0
+            for state, action, player_id, reward in reversed(episode):
+                step_reward = reward if player_id == 0 else -reward
+                G = step_reward + gamma * G
                 old_q = _get_q(agent.q_table, state, action)
-                new_q = old_q + alpha * (reward + gamma * max_next - old_q)
+                new_q = old_q + alpha * (G - old_q)
                 _set_q(agent.q_table, state, action, new_q)
     except KeyboardInterrupt:
         pass
