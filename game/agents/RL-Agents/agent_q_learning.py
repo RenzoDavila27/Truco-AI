@@ -30,7 +30,7 @@ class QLearningAgent:
         best_value = None
         for action in valid_actions:
             q_val = self.q_table.get((state, action), 0.0)
-            print(f"Action: {action}, Q-value: {q_val}")
+            #print(f"Action: {action}, Q-value: {q_val}")
             if best_value is None or q_val > best_value:
                 best_value = q_val
                 best_action = action
@@ -38,51 +38,61 @@ class QLearningAgent:
 
     def encode_state(self, env, player_id=0):
         """
-        Convierte el estado actual del entorno a una tupla discreta para Q-table.
+        Versión optimizada para reducir la Explosión de Estados.
+        Se enfoca en información relativa y 'Zonas' de juego.
         """
         obs = env.get_observation(player_id)
         estado = env.logic.estado
 
+        # 1. MIS CARTAS: Mantenemos el ranking ordenado (Fundamental)
         mano_ranks = self._sorted_hand_ranks(obs[0:3])
-        rival_ranks = self._sorted_hand_ranks(obs[3:6])
-        puntos_mios = self._bin_points(int(obs[6]))
-        puntos_rival = self._bin_points(int(obs[7]))
-        ronda = int(obs[8])
-        mi_turno = int(obs[9])
+
+        # 2. RIVAL: Solo nos importa la carta más fuerte que tenga en mesa para matarla
+        # obs[3:6] son las cartas del rival en mesa
+        rival_ranks_list = [int(r) for r in obs[3:6] if int(r) > 0]
+        max_rival_mesa = max(rival_ranks_list) if rival_ranks_list else 0
+
+        # 3. PUNTOS: Usamos ZONAS en lugar de bins lineales
+        if player_id == 0:
+            mis_puntos = int(obs[6])
+            rival_puntos = int(obs[7])
+        else:
+            mis_puntos = int(obs[7])
+            rival_puntos = int(obs[6])
+
+        # Zona 0: Malas (0-15), Zona 1: Buenas (16-25), Zona 2: Definición (26-30)
+        def get_zona(p):
+            if p <= 15: return 0
+            if p <= 25: return 1
+            return 2
+
+        mi_zona = get_zona(mis_puntos)
+        rival_zona = get_zona(rival_puntos)
+        voy_ganando = 1 if mis_puntos >= rival_puntos else 0
+
+        # 4. CONTEXTO DE RONDA
+        # Saber si soy mano es vital para el Envido y para definir en 3ra ronda
+        soy_mano = int(obs[12]) 
+        # Nivel de presión del truco (0, 1, 2, 3)
         nivel_truco = int(obs[10])
-        nivel_envido = int(obs[11])
-        es_mano = int(obs[12])
-
+        # Estado del envido (No cantado, Envido, Real, Falta, Cerrado)
         estado_envido = int(estado.estado_canto_envido)
-        estado_truco = int(estado.estado_canto_truco)
-        responder_envido = int(estado.turno_responder_envido)
-        responder_truco = int(estado.turno_responder_truco)
+        
+        # Ronda actual (1, 2, 3)
+        ronda = int(obs[8])
 
-        rondas_ganadas_mias = (
-            estado.rondas_ganadas_jugador if player_id == 0 else estado.rondas_ganadas_oponente
-        )
-        rondas_ganadas_rival = (
-            estado.rondas_ganadas_oponente if player_id == 0 else estado.rondas_ganadas_jugador
-        )
-        rondas_empatadas = estado.rondas_empatadas
-
+        # Retornamos una tupla compacta de 8 elementos
         return (
-            mano_ranks,
-            rival_ranks,
-            puntos_mios,
-            puntos_rival,
-            ronda,
-            mi_turno,
-            nivel_truco,
-            nivel_envido,
-            es_mano,
-            estado_envido,
-            estado_truco,
-            responder_envido,
-            responder_truco,
-            rondas_ganadas_mias,
-            rondas_ganadas_rival,
-            rondas_empatadas,
+            mano_ranks,         # Tupla (R1, R2, R3)
+            max_rival_mesa,     # Int (0-14)
+            mi_zona,            # Int (0-2)
+            rival_zona,         # Int (0-2)
+            voy_ganando,        # Bool (0-1)
+            nivel_truco,        # Int (0-4)
+            estado_envido,      # Int
+            soy_mano,           # Bool (0-1)
+            # Opcional: ronda. A veces es útil, a veces redundante con las cartas jugadas.
+            ronda               # Int (1-3)
         )
 
     def _sorted_hand_ranks(self, ranks):
