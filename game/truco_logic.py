@@ -171,16 +171,19 @@ class TrucoGameLogic:
             if resultado in [0, 1]:
                 ganador_ultima_no_empate = resultado
                 break
+        ganador_primera_no_empate = None
+        for resultado in self.estado.resultados_ronda:
+            if resultado in [0, 1]:
+                ganador_primera_no_empate = resultado
+                break
 
         if ganadas_j >= 2:
             return 0
         if ganadas_o >= 2:
             return 1
 
-        if rondas_jugadas >= 2:
-            if ganadas_j == 1 and empatadas == 1:
-                return ganador_ultima_no_empate
-            if ganadas_o == 1 and empatadas == 1:
+        if rondas_jugadas == 2:
+            if (ganadas_j == 1 or ganadas_o == 1) and empatadas == 1:
                 return ganador_ultima_no_empate
             if empatadas == 2:
                 return None
@@ -192,6 +195,9 @@ class TrucoGameLogic:
                 return 1
             if empatadas == 3:
                 return 0 if self.estado.es_mano else 1
+            if ganadas_j == 1 and ganadas_o == 1 and empatadas == 1:
+                if ganador_primera_no_empate is not None:
+                    return ganador_primera_no_empate
             if ganador_ultima_no_empate is not None:
                 return ganador_ultima_no_empate
             return 0 if self.estado.es_mano else 1
