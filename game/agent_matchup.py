@@ -5,8 +5,7 @@ from truco_env import TrucoEnv
 from agents.registry import create_agent, get_agent_registry
 
 
-def _play_game(agent_0, agent_1):
-    env = TrucoEnv()
+def _play_game(env, agent_0, agent_1):
     env.reset()
     done = False
 
@@ -107,13 +106,15 @@ def main(agent_0, agent_1, games, output_name=None, summary_name=None):
         "hands_won_j1": 0,
     }
 
+    env = TrucoEnv()
+    agent_0_inst = create_agent(agent_0_name)
+    agent_1_inst = create_agent(agent_1_name)
+
     with open(output_name, "w", newline="", encoding="utf-8") as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         for i in range(1, games + 1):
-            agent_0_inst = create_agent(agent_0_name)
-            agent_1_inst = create_agent(agent_1_name)
-            result = _play_game(agent_0_inst, agent_1_inst)
+            result = _play_game(env, agent_0_inst, agent_1_inst)
             result["game"] = i
             result["agent_0"] = agent_0_name
             result["agent_1"] = agent_1_name
