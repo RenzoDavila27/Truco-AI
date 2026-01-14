@@ -44,15 +44,11 @@ class QLearningAgent:
         obs = env.get_observation(player_id)
         estado = env.logic.estado
 
-        # 1. MIS CARTAS: Mantenemos el ranking ordenado (Fundamental)
         mano_ranks = self._sorted_hand_ranks(obs[0:3])
 
-        # 2. RIVAL: Solo nos importa la carta más fuerte que tenga en mesa para matarla
-        # obs[3:6] son las cartas del rival en mesa
         rival_ranks_list = [int(r) for r in obs[3:6] if int(r) > 0]
         max_rival_mesa = max(rival_ranks_list) if rival_ranks_list else 0
 
-        # 3. PUNTOS: Usamos ZONAS en lugar de bins lineales
         if player_id == 0:
             mis_puntos = int(obs[6])
             rival_puntos = int(obs[7])
@@ -60,7 +56,6 @@ class QLearningAgent:
             mis_puntos = int(obs[7])
             rival_puntos = int(obs[6])
 
-        # Zona 0: Malas (0-15), Zona 1: Buenas (16-25), Zona 2: Definición (26-30)
         def get_zona(p):
             if p <= 15: return 0
             if p <= 25: return 1
@@ -70,18 +65,14 @@ class QLearningAgent:
         rival_zona = get_zona(rival_puntos)
         voy_ganando = 1 if mis_puntos >= rival_puntos else 0
 
-        # 4. CONTEXTO DE RONDA
-        # Saber si soy mano es vital para el Envido y para definir en 3ra ronda
         soy_mano = int(obs[12]) 
-        # Nivel de presión del truco (0, 1, 2, 3)
+
         nivel_truco = int(obs[10])
-        # Estado del envido (No cantado, Envido, Real, Falta, Cerrado)
+
         estado_envido = int(estado.estado_canto_envido)
-        
-        # Ronda actual (1, 2, 3)
+
         ronda = int(obs[8])
 
-        # Retornamos una tupla compacta de 8 elementos
         return (
             mano_ranks,         # Tupla (R1, R2, R3)
             max_rival_mesa,     # Int (0-14)
@@ -91,7 +82,6 @@ class QLearningAgent:
             nivel_truco,        # Int (0-4)
             estado_envido,      # Int
             soy_mano,           # Bool (0-1)
-            # Opcional: ronda. A veces es útil, a veces redundante con las cartas jugadas.
             ronda               # Int (1-3)
         )
 

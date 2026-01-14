@@ -1,4 +1,5 @@
 import argparse
+import math
 import os
 import pickle
 import sys
@@ -9,6 +10,7 @@ if GAME_DIR not in sys.path:
     sys.path.insert(0, GAME_DIR)
 
 from truco_env import TrucoEnv
+from constantes import Acciones
 from agent_q_learning import QLearningAgent
 from agents.registry import create_agent, get_agent_registry
 
@@ -46,28 +48,22 @@ def _epsilon_greedy(q_table, state, action_mask, epsilon):
     return best_action
 
 
-def _linear_epsilon(episode_idx, total_episodes, start, end):
-    if total_episodes <= 1:
-        return end
-    ratio = episode_idx / (total_episodes - 1)
-    return start + (end - start) * ratio
-
-
-def _update_q_for_episode(q_table, episode_steps, alpha, gamma):
-    G = 0.0
-    for state, action, reward in reversed(episode_steps):
-        G = reward + gamma * G
+def _update_hand(q_table, hand_steps, final_reward, alpha, gamma):
+    if not hand_steps:
+        return
+    G = float(final_reward)
+    for state, action in reversed(hand_steps):
         old_q = _get_q(q_table, state, action)
         new_q = old_q + alpha * (G - old_q)
         _set_q(q_table, state, action, new_q)
+        G *= gamma
 
 
 def train(
     episodes,
     alpha,
     gamma,
-    epsilon_start,
-    epsilon_end,
+    epsilon,
     reset_q_table,
     opponent_name,
     q_player,
@@ -83,8 +79,16 @@ def train(
         for episode_idx in range(episodes):
             env.reset()
             done = False
-            episode_steps = []
-            epsilon = _linear_epsilon(episode_idx, episodes, epsilon_start, epsilon_end)
+            hand_steps = []
+            prev_es_mano = env.logic.estado.es_mano
+            hand_start_points = (
+                env.logic.estado.puntos_jugador,
+                env.logic.estado.puntos_oponente,
+            )
+            t = episode_idx + 1
+            current_epsilon = epsilon * math.cos((t * math.pi) / (2 * episodes))
+            if current_epsilon < 0:
+                current_epsilon = 0.0
 
             while not done:
                 player_id = env.get_current_player()
@@ -94,7 +98,9 @@ def train(
 
                 if player_id == q_player:
                     state = agent.encode_state(env, player_id)
-                    action = _epsilon_greedy(agent.q_table, state, action_mask, epsilon)
+                    action = _epsilon_greedy(
+                        agent.q_table, state, action_mask, current_epsilon
+                    )
                     if action is None:
                         break
                 else:
@@ -103,11 +109,42 @@ def train(
                 _, reward, done, _, _ = env.step(action, player_id)
 
                 if player_id == q_player:
-                    reward_q = reward if q_player == 0 else -reward
-                    episode_steps.append((state, action, reward_q))
+                    hand_steps.append((state, action))
 
-            if episode_steps:
-                _update_q_for_episode(agent.q_table, episode_steps, alpha, gamma)
+                if player_id == q_player and reward <= -5:
+                    _update_hand(agent.q_table, [hand_steps.pop()], -1.0, alpha, gamma)
+                    continue
+
+                current_es_mano = env.logic.estado.es_mano
+                hand_end = done or (current_es_mano != prev_es_mano)
+                if hand_end:
+                    delta_j0 = env.logic.estado.puntos_jugador - hand_start_points[0]
+                    delta_j1 = env.logic.estado.puntos_oponente - hand_start_points[1]
+                    if q_player == 0:
+                        points_diff = delta_j0 - delta_j1
+                    else:
+                        points_diff = delta_j1 - delta_j0
+                    final_reward = points_diff / 30.0
+                    if player_id == q_player and action == Acciones.IR_AL_MAZO.value:
+                        final_reward -= 0.1
+                    if final_reward > 1.0:
+                        final_reward = 1.0
+                    elif final_reward < -1.0:
+                        final_reward = -1.0
+
+                    _update_hand(agent.q_table, hand_steps, final_reward, alpha, gamma)
+                    hand_steps = []
+                    hand_start_points = (
+                        env.logic.estado.puntos_jugador,
+                        env.logic.estado.puntos_oponente,
+                    )
+                    prev_es_mano = current_es_mano
+
+            _update_hand(agent.q_table, hand_steps, 0.0, alpha, gamma)
+            if t % 1000 == 0 or t == episodes:
+                print(
+                    f"Episodio {t}/{episodes} | epsilon={current_epsilon:.4f} | Q-size={len(agent.q_table)}"
+                )
     except KeyboardInterrupt:
         pass
     finally:
@@ -121,11 +158,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Entrena Q-Learning contra un agente fijo (no self-play)."
     )
-    parser.add_argument("--episodes", type=int, default=100, help="Cantidad de partidas.")
+    parser.add_argument("--episodes", type=int, default=100, help="Cantidad de episodios.")
     parser.add_argument("--alpha", type=float, default=0.1, help="Learning rate.")
-    parser.add_argument("--gamma", type=float, default=0.95, help="Discount factor.")
-    parser.add_argument("--epsilon-start", type=float, default=0.5, help="Epsilon inicial.")
-    parser.add_argument("--epsilon-end", type=float, default=0.1, help="Epsilon final.")
+    parser.add_argument("--gamma", type=float, default=1, help="Discount factor.")
+    parser.add_argument("--epsilon", type=float, default=0.5, help="Epsilon para exploracion.")
     parser.add_argument(
         "--reset-q-table",
         action="store_true",
@@ -150,8 +186,7 @@ if __name__ == "__main__":
         args.episodes,
         args.alpha,
         args.gamma,
-        args.epsilon_start,
-        args.epsilon_end,
+        args.epsilon,
         args.reset_q_table,
         args.opponent,
         args.q_player,
