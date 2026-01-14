@@ -1,5 +1,6 @@
 import argparse
 import csv
+import os
 from constantes import Acciones
 from truco_env import TrucoEnv
 from agents.registry import create_agent, get_agent_registry
@@ -74,10 +75,16 @@ def _play_game(env, agent_0, agent_1):
 
 
 def main(agent_0, agent_1, games, output_name=None, summary_name=None):
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    results_dir = os.path.join(project_root, "resultados")
+    os.makedirs(results_dir, exist_ok=True)
+
     if output_name is None:
         output_name = f"{agent_0}vs{agent_1}results.csv"
     if summary_name is None:
         summary_name = f"{agent_0}vs{agent_1}summary.txt"
+    output_path = os.path.join(results_dir, os.path.basename(output_name))
+    summary_path = os.path.join(results_dir, os.path.basename(summary_name))
     agent_0_name = agent_0
     agent_1_name = agent_1
 
@@ -110,7 +117,7 @@ def main(agent_0, agent_1, games, output_name=None, summary_name=None):
     agent_0_inst = create_agent(agent_0_name)
     agent_1_inst = create_agent(agent_1_name)
 
-    with open(output_name, "w", newline="", encoding="utf-8") as csvfile:
+    with open(output_path, "w", newline="", encoding="utf-8") as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         for i in range(1, games + 1):
@@ -131,7 +138,7 @@ def main(agent_0, agent_1, games, output_name=None, summary_name=None):
             totals["hands_won_j0"] += result["hands_won_j0"]
             totals["hands_won_j1"] += result["hands_won_j1"]
 
-    print(f"Resultados guardados en {output_name}")
+    print(f"Resultados guardados en {output_path}")
 
     if games > 0:
         avg_points_j0 = totals["points_j0"] / games
@@ -146,7 +153,7 @@ def main(agent_0, agent_1, games, output_name=None, summary_name=None):
         avg_hands_won_j0 = 0
         avg_hands_won_j1 = 0
 
-    with open(summary_name, "w", encoding="utf-8") as summary:
+    with open(summary_path, "w", encoding="utf-8") as summary:
         summary.write(f"Agente J0: {agent_0_name}\n")
         summary.write(f"Agente J1: {agent_1_name}\n")
         summary.write(f"Partidas: {games}\n")
@@ -159,7 +166,7 @@ def main(agent_0, agent_1, games, output_name=None, summary_name=None):
         summary.write(f"Promedio manos ganadas J0: {avg_hands_won_j0:.2f}\n")
         summary.write(f"Promedio manos ganadas J1: {avg_hands_won_j1:.2f}\n")
 
-    print(f"Resumen guardado en {summary_name}")
+    print(f"Resumen guardado en {summary_path}")
 
 
 if __name__ == "__main__":

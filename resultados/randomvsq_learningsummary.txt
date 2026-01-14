@@ -1,0 +1,11 @@
+Agente J0: random
+Agente J1: q_learning
+Partidas: 1000
+Victorias J0: 243
+Victorias J1: 757
+Empates: 0
+Promedio puntos J0: 18.81
+Promedio puntos J1: 26.72
+Promedio manos jugadas: 15.24
+Promedio manos ganadas J0: 5.08
+Promedio manos ganadas J1: 10.15
