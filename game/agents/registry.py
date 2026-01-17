@@ -36,6 +36,28 @@ def _load_policy_gradient_nn_agent():
     return module.PolicyGradientNNAgent
 
 
+def _load_sb3_agent():
+    base_dir = os.path.dirname(__file__)
+    agent_path = os.path.join(base_dir, "..", "sb3", "sb3_agent.py")
+    agent_path = os.path.abspath(agent_path)
+    spec = importlib.util.spec_from_file_location("sb3_agent", agent_path)
+    if spec is None or spec.loader is None:
+        raise ImportError("No se pudo cargar sb3_agent.py.")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    sb3_agent_cls = module.SB3Agent
+
+    def _factory():
+        game_dir = os.path.abspath(os.path.join(base_dir, ".."))
+        model_path = os.getenv(
+            "SB3_TRUCO_MODEL",
+            os.path.join(game_dir, "sb3", "models", "ppo_truco"),
+        )
+        return sb3_agent_cls(model_path=model_path)
+
+    return _factory
+
+
 def get_agent_registry():
     return {
         "random": RandomAgent,
@@ -43,6 +65,7 @@ def get_agent_registry():
         "q_learning": _load_q_learning_agent(),
         "policy_gradient": _load_policy_gradient_agent(),
         "policy_gradient_nn": _load_policy_gradient_nn_agent(),
+        "sb3": _load_sb3_agent(),
     }
 
 
