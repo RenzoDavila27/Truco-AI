@@ -1,0 +1,11 @@
+Agente J0: q_learning
+Agente J1: sb3
+Partidas: 1000
+Victorias J0: 431
+Victorias J1: 569
+Empates: 0
+Promedio puntos J0: 25.00
+Promedio puntos J1: 27.83
+Promedio manos jugadas: 18.36
+Promedio manos ganadas J0: 10.05
+Promedio manos ganadas J1: 8.31

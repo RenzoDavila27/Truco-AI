@@ -13,16 +13,23 @@ Proyecto de Truco Argentino (1v1, sin flor) con un motor de reglas, un entorno t
 
 Python 3.11+.
 
-El entorno virtual ya existe en el repo. Para activarlo:
+Crear y activar un entorno virtual:
 
 Linux/Mac:
 ```bash
-source truco_ent/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
 Windows (PowerShell):
 ```powershell
-truco_ent\\Scripts\\Activate.ps1
+python -m venv .venv
+.venv\\Scripts\\Activate.ps1
+```
+
+Instalar dependencias:
+```bash
+pip install -r requirements.txt
 ```
 
 ## Estructura del proyecto
@@ -40,6 +47,13 @@ truco_ent\\Scripts\\Activate.ps1
 - `game/agents/RL-Agents/train_q_learning.py`: Entrenamiento Q-Learning en self-play.
 - `game/agents/RL-Agents/train_q_learning_vs_agent.py`: Entrenamiento Q-Learning contra un agente fijo.
 - `game/agents/RL-Agents/analyze_q_table.py`: Analisis de Q-Table con resumen por acciones y top valores.
+- `game/agents/RL-Agents/train_policy_gradient.py`: Entrenamiento policy gradient (lineal) en self-play.
+- `game/agents/RL-Agents/train_policy_gradient_nn.py`: Entrenamiento policy gradient con red neuronal.
+- `game/agents/RL-Agents/pg_models/`: Modelos guardados de policy gradient.
+- `game/sb3/sb3_env.py`: Wrapper compatible con Stable-Baselines3.
+- `game/sb3/sb3_train.py`: Entrenamiento PPO con action masking (MaskablePPO).
+- `game/sb3/sb3_agent.py`: Wrapper para cargar modelos SB3 como agente.
+- `game/sb3/models/`: Modelos entrenados con SB3.
 - `readmeDesafio.md`: Documento original del desafio y contexto teorico.
 
 ## Jugar contra un agente (consola)
@@ -69,6 +83,9 @@ Agentes disponibles (ver `game/agents/registry.py`):
 - `random`: elige acciones validas al azar.
 - `rational`: reglas deterministicas para envido, truco y eleccion de cartas.
 - `q_learning`: toma la decision segun su q_table (si es vacia o no existe el archivo, tomara decisiones greedy)
+- `policy_gradient`: policy gradient lineal entrenado por manos.
+- `policy_gradient_nn`: policy gradient con red neuronal.
+- `sb3`: modelo PPO de SB3 (usa `SB3_TRUCO_MODEL` si se define).
 ## Agente vs agente
 
 Simula una partida completa entre dos agentes:
@@ -174,6 +191,77 @@ python3 game/console_game.py --agent q_learning
 ```
 
 La tabla se carga automaticamente al iniciar el agente. Si no existe, juega con valores Q en cero (comportamiento casi aleatorio).
+
+## Policy Gradient (lineal)
+
+Entrena el agente policy gradient lineal en self-play (por manos):
+
+```bash
+python3 game/agents/RL-Agents/train_policy_gradient.py --hands 1000
+```
+
+Parametros principales:
+- `--hands`: cantidad de manos.
+- `--gamma`: discount factor.
+- `--lr-policy`: learning rate de la politica.
+- `--lr-value`: learning rate del valor.
+- `--clip-eps`: clip PPO.
+- `--epochs`: epochs por mano.
+- `--reset-model`: reinicia el modelo antes de entrenar.
+
+El modelo se guarda en `game/agents/RL-Agents/pg_models/policy.pkl`.
+
+## Policy Gradient con red neuronal
+
+Entrena un policy gradient con red neuronal en self-play:
+
+```bash
+python3 game/agents/RL-Agents/train_policy_gradient_nn.py --hands 1000
+```
+
+Parametros principales:
+- `--hands`: cantidad de manos.
+- `--gamma`: discount factor.
+- `--lr-policy`: learning rate de la politica.
+- `--lr-value`: learning rate del valor.
+- `--clip-eps`: clip PPO.
+- `--epochs`: epochs por mano.
+- `--reset-model`: reinicia el modelo antes de entrenar.
+
+El modelo se guarda en `game/agents/RL-Agents/pg_models/policy_nn.pt`.
+
+## Entrenamiento SB3 (MaskablePPO)
+
+Entrena un agente PPO con action masking:
+
+```bash
+python3 game/sb3/sb3_train.py --timesteps 200000 --opponent random
+```
+
+Opciones utiles:
+
+```bash
+python3 game/sb3/sb3_train.py --timesteps 500000 --opponent selfplay --selfplay-winrate 0.8
+```
+
+Parametros principales:
+- `--timesteps`: pasos de entrenamiento.
+- `--opponent`: `random`, `rational` o `selfplay`.
+- `--output`: ruta del modelo (default `game/sb3/models/ppo_truco`).
+- `--selfplay-snapshot`: snapshot del oponente en self-play.
+
+Para usar el modelo entrenado en consola:
+
+Linux/Mac:
+```bash
+SB3_TRUCO_MODEL=game/sb3/models/ppo_truco python3 game/console_game.py --agent sb3
+```
+
+Windows (PowerShell):
+```powershell
+$env:SB3_TRUCO_MODEL="game\\sb3\\models\\ppo_truco"
+python game\\console_game.py --agent sb3
+```
 
 ## Notas
 
