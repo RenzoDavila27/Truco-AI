@@ -46,22 +46,37 @@ class OpenSpielPolicyAgent:
         if not valid_actions:
             return None
 
-        card_actions = [
-            Acciones.JUGAR_CARTA_1.value,
-            Acciones.JUGAR_CARTA_2.value,
-            Acciones.JUGAR_CARTA_3.value,
-        ]
-        if any(action_mask[a] for a in card_actions):
-            chosen = self._choose_card_action(action_mask, env, player_id)
-            if chosen is not None:
-                return chosen
-
-        return self.fallback_agent.choose_action(action_mask, env, player_id)
-
-    def _choose_card_action(self, action_mask, env, player_id):
         state = self._build_open_spiel_state(env, player_id)
         action_probs = self.policy.action_probabilities(state, player_id)
 
+        weighted_actions = self._project_policy_to_env(
+            action_probs, action_mask, env, player_id
+        )
+        if not weighted_actions:
+            return self.fallback_agent.choose_action(action_mask, env, player_id)
+
+        return self._select_weighted_action(weighted_actions)
+
+    def _project_policy_to_env(self, action_probs, action_mask, env, player_id):
+        weighted_actions = {}
+        card_mapping = self._card_id_to_env_action(action_mask, env, player_id)
+
+        for os_action, prob in action_probs.items():
+            env_action = None
+
+            if os_action < truco_argentino.NUM_CARDS:
+                env_action = card_mapping.get(os_action)
+            else:
+                env_action = self._map_call_action(os_action, action_mask, env)
+
+            if env_action is None:
+                continue
+
+            weighted_actions[env_action] = weighted_actions.get(env_action, 0.0) + float(prob)
+
+        return weighted_actions
+
+    def _card_id_to_env_action(self, action_mask, env, player_id):
         mano = (
             env.logic.estado.mano_jugador
             if player_id == 0
@@ -71,17 +86,42 @@ class OpenSpielPolicyAgent:
         for idx, card in enumerate(mano):
             env_action = Acciones.JUGAR_CARTA_1.value + idx
             if env_action < len(action_mask) and action_mask[env_action]:
-                card_id_to_env_action[self._env_card_to_os_id(card)] = env_action
+                card_id = self._env_card_to_os_id(card)
+                card_id_to_env_action[card_id] = env_action
 
-        weighted_actions = {}
-        for os_action, prob in action_probs.items():
-            if os_action in card_id_to_env_action:
-                env_action = card_id_to_env_action[os_action]
-                weighted_actions[env_action] = weighted_actions.get(env_action, 0.0) + float(prob)
+        return card_id_to_env_action
 
-        if not weighted_actions:
+    def _map_call_action(self, os_action, action_mask, env):
+        estado = env.logic.estado
+        candidate = None
+
+        if os_action == truco_argentino.FOLD:
+            if estado.turno_responder_envido or estado.turno_responder_truco:
+                candidate = Acciones.NO_QUIERO.value
+            else:
+                candidate = Acciones.IR_AL_MAZO.value
+        elif os_action == truco_argentino.QUIERO:
+            candidate = Acciones.QUIERO.value
+        elif os_action == truco_argentino.ENVIDO:
+            candidate = Acciones.ENVIDO.value
+        elif os_action == truco_argentino.REAL_ENVIDO:
+            candidate = Acciones.REAL_ENVIDO.value
+        elif os_action == truco_argentino.FALTA_ENVIDO:
+            candidate = Acciones.FALTA_ENVIDO.value
+        elif os_action == truco_argentino.TRUCO:
+            candidate = Acciones.TRUCO.value
+        elif os_action == truco_argentino.RE_TRUCO:
+            candidate = Acciones.RETRUCO.value
+        elif os_action == truco_argentino.VALE_CUATRO:
+            candidate = Acciones.VALE_CUATRO.value
+
+        if candidate is None:
             return None
+        if candidate >= len(action_mask) or not action_mask[candidate]:
+            return None
+        return candidate
 
+    def _select_weighted_action(self, weighted_actions):
         if self.sample:
             actions = list(weighted_actions.keys())
             weights = [weighted_actions[a] for a in actions]
