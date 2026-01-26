@@ -1,0 +1,11 @@
+Agente J0: rational
+Agente J1: q_learning
+Partidas: 1000
+Victorias J0: 579
+Victorias J1: 421
+Empates: 0
+Promedio puntos J0: 27.16
+Promedio puntos J1: 26.06
+Promedio manos jugadas: 27.56
+Promedio manos ganadas J0: 14.64
+Promedio manos ganadas J1: 12.92

@@ -57,7 +57,7 @@ def _load_sb3_agent():
 
     return _factory
 
-
+'''
 def _load_open_spiel_agent():
     base_dir = os.path.dirname(__file__)
     agent_path = os.path.join(base_dir, "..", "open_spiel", "open_spiel_agent.py")
@@ -83,7 +83,7 @@ def _load_open_spiel_agent():
         return agent_cls(policy_path=policy_path)
 
     return _factory
-
+'''
 
 def get_agent_registry():
     return {
@@ -92,8 +92,8 @@ def get_agent_registry():
         "q_learning": _load_q_learning_agent(),
         "policy_gradient": _load_policy_gradient_agent(),
         "policy_gradient_nn": _load_policy_gradient_nn_agent(),
-        "sb3": _load_sb3_agent(),
-        "mccfr": _load_open_spiel_agent(),
+        "sb3": _load_sb3_agent()
+        #"mccfr": _load_open_spiel_agent(),
     }
 
 

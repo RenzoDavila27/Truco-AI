@@ -1,11 +1,11 @@
 Agente J0: rational
 Agente J1: sb3
 Partidas: 1000
-Victorias J0: 968
-Victorias J1: 32
+Victorias J0: 516
+Victorias J1: 484
 Empates: 0
-Promedio puntos J0: 29.85
-Promedio puntos J1: 15.95
-Promedio manos jugadas: 23.40
-Promedio manos ganadas J0: 11.72
-Promedio manos ganadas J1: 11.69
+Promedio puntos J0: 26.83
+Promedio puntos J1: 26.05
+Promedio manos jugadas: 19.01
+Promedio manos ganadas J0: 9.98
+Promedio manos ganadas J1: 9.02

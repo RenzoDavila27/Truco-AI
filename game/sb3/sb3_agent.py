@@ -36,7 +36,7 @@ class SB3Agent:
             raise ValueError("env is required to build the observation")
         obs = env.get_observation(player_id)
         if self.use_maskable:
-            action, _ = self.model.predict(obs, action_masks=np.array(action_mask, dtype=bool), deterministic=True)
+            action, _ = self.model.predict(obs, action_masks=np.array(action_mask, dtype=bool), deterministic=False)
         else:
-            action, _ = self.model.predict(obs, deterministic=True)
+            action, _ = self.model.predict(obs, deterministic=False)
         return int(action)
