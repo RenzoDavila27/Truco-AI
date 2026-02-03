@@ -16,18 +16,21 @@ Python 3.11+.
 Crear y activar un entorno virtual:
 
 Linux/Mac:
+
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 ```
 
 Windows (PowerShell):
+
 ```powershell
 python -m venv .venv
 .venv\\Scripts\\Activate.ps1
 ```
 
 Instalar dependencias:
+
 ```bash
 pip install -r requirements.txt
 ```
@@ -43,17 +46,23 @@ pip install -r requirements.txt
 - `game/console_game.py`: Juego 1v1 por consola (humano vs agente configurable).
 - `game/agent_vs_agent.py`: Partida completa entre agentes configurables.
 - `game/agent_matchup.py`: Simulador de multiples partidas con estadisticas.
-- `game/jugadas_prueba.txt`: Secuencias de jugadas para validar reglas y turnos.
+- `game/agent_bluff_matchup.py`: Simulador de partidas con recoleccion de tasas de mentira.
+- `game/agents/RL-Agents/agent_q_learning.py`: Agente Q-Learning con Q-Table persistida.
 - `game/agents/RL-Agents/train_q_learning.py`: Entrenamiento Q-Learning en self-play.
 - `game/agents/RL-Agents/train_q_learning_vs_agent.py`: Entrenamiento Q-Learning contra un agente fijo.
 - `game/agents/RL-Agents/analyze_q_table.py`: Analisis de Q-Table con resumen por acciones y top valores.
-- `game/agents/RL-Agents/train_policy_gradient.py`: Entrenamiento policy gradient (lineal) en self-play.
-- `game/agents/RL-Agents/train_policy_gradient_nn.py`: Entrenamiento policy gradient con red neuronal.
-- `game/agents/RL-Agents/pg_models/`: Modelos guardados de policy gradient.
 - `game/sb3/sb3_env.py`: Wrapper compatible con Stable-Baselines3.
 - `game/sb3/sb3_train.py`: Entrenamiento PPO con action masking (MaskablePPO).
 - `game/sb3/sb3_agent.py`: Wrapper para cargar modelos SB3 como agente.
 - `game/sb3/models/`: Modelos entrenados con SB3.
+- `game/plots/points_violin.py`: Generador de graficos de violin para distribucion de puntos.
+- `game/plots/points_boxplot.py`: Generador de graficos boxplot para puntos.
+- `game/plots/bluff_rate_bars.py`: Generador de graficos de barras para tasas de mentira.
+- `game/plots/matchup_heatmap.py`: Generador de heatmaps para resultados de matchups.
+- `game/plots/points_sources_area.py`: Generador de graficos de area para fuentes de puntos.
+- `resultados/`: Directorio con CSVs y resumenes de simulaciones.
+- `referencias/`: Directorio con papers y documentacion de referencia.
+- `proyecto_final.md`: Informe final del proyecto.
 - `readmeDesafio.md`: Documento original del desafio y contexto teorico.
 
 ## Jugar contra un agente (consola)
@@ -80,12 +89,12 @@ python3 game/console_game.py --agent random
 Durante la partida, el juego imprime las acciones validas y el estado actual. El rival (agente) juega automaticamente cuando le corresponde.
 
 Agentes disponibles (ver `game/agents/registry.py`):
+
 - `random`: elige acciones validas al azar.
 - `rational`: reglas deterministicas para envido, truco y eleccion de cartas.
-- `q_learning`: toma la decision segun su q_table (si es vacia o no existe el archivo, tomara decisiones greedy)
-- `policy_gradient`: policy gradient lineal entrenado por manos.
-- `policy_gradient_nn`: policy gradient con red neuronal.
+- `q_learning`: toma la decision segun su q_table (si es vacia o no existe el archivo, tomara decisiones greedy).
 - `sb3`: modelo PPO de SB3 (usa `SB3_TRUCO_MODEL` si se define).
+
 ## Agente vs agente
 
 Simula una partida completa entre dos agentes:
@@ -120,6 +129,7 @@ python3 game/agent_matchup.py --agent-0 q_learning --agent-1 rational --games 50
 ```
 
 Parametros principales:
+
 - `--agent-0`: agente para J0 (ver registry).
 - `--agent-1`: agente para J1 (ver registry).
 - `--games`: cantidad de partidas a simular.
@@ -162,6 +172,7 @@ python3 game/agents/RL-Agents/train_q_learning_vs_agent.py --episodes 1000 --opp
 ```
 
 Parametros principales:
+
 - `--episodes`: cantidad de episodios.
 - `--alpha`: learning rate.
 - `--gamma`: discount factor.
@@ -179,6 +190,7 @@ python3 game/agents/RL-Agents/analyze_q_table.py --output q_table_report.txt
 ```
 
 Parametros principales:
+
 - `--input`: ruta de la Q-Table (por defecto `game/agents/RL-Agents/q_tables/q_table.pkl`).
 - `--output`: ruta del reporte de salida.
 
@@ -191,44 +203,6 @@ python3 game/console_game.py --agent q_learning
 ```
 
 La tabla se carga automaticamente al iniciar el agente. Si no existe, juega con valores Q en cero (comportamiento casi aleatorio).
-
-## Policy Gradient (lineal)
-
-Entrena el agente policy gradient lineal en self-play (por manos):
-
-```bash
-python3 game/agents/RL-Agents/train_policy_gradient.py --hands 1000
-```
-
-Parametros principales:
-- `--hands`: cantidad de manos.
-- `--gamma`: discount factor.
-- `--lr-policy`: learning rate de la politica.
-- `--lr-value`: learning rate del valor.
-- `--clip-eps`: clip PPO.
-- `--epochs`: epochs por mano.
-- `--reset-model`: reinicia el modelo antes de entrenar.
-
-El modelo se guarda en `game/agents/RL-Agents/pg_models/policy.pkl`.
-
-## Policy Gradient con red neuronal
-
-Entrena un policy gradient con red neuronal en self-play:
-
-```bash
-python3 game/agents/RL-Agents/train_policy_gradient_nn.py --hands 1000
-```
-
-Parametros principales:
-- `--hands`: cantidad de manos.
-- `--gamma`: discount factor.
-- `--lr-policy`: learning rate de la politica.
-- `--lr-value`: learning rate del valor.
-- `--clip-eps`: clip PPO.
-- `--epochs`: epochs por mano.
-- `--reset-model`: reinicia el modelo antes de entrenar.
-
-El modelo se guarda en `game/agents/RL-Agents/pg_models/policy_nn.pt`.
 
 ## Entrenamiento SB3 (MaskablePPO)
 
@@ -245,6 +219,7 @@ python3 game/sb3/sb3_train.py --timesteps 500000 --opponent selfplay --selfplay-
 ```
 
 Parametros principales:
+
 - `--timesteps`: pasos de entrenamiento.
 - `--opponent`: `random`, `rational` o `selfplay`.
 - `--output`: ruta del modelo (default `game/sb3/models/ppo_truco`).
@@ -253,11 +228,13 @@ Parametros principales:
 Para usar el modelo entrenado en consola:
 
 Linux/Mac:
+
 ```bash
 SB3_TRUCO_MODEL=game/sb3/models/ppo_truco python3 game/console_game.py --agent sb3
 ```
 
 Windows (PowerShell):
+
 ```powershell
 $env:SB3_TRUCO_MODEL="game\\sb3\\models\\ppo_truco"
 python game\\console_game.py --agent sb3
