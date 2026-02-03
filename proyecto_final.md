@@ -7,6 +7,30 @@
 
 ---
 
+## Índice
+
+1. [Introducción](#1-introducción)
+2. [Marco teórico](#2-marco-teórico)
+   - [2.1 Aprendizaje por refuerzo (RL)](#21-aprendizaje-por-refuerzo-rl)
+   - [2.2 Q-Learning](#22-q-learning)
+   - [2.3 Proximal Policy Optimization (PPO)](#23-proximal-policy-optimization-ppo)
+3. [Metodología y desarrollo](#3-metodología-y-desarrollo)
+   - [3.1 Métricas de evaluación](#31-métricas-de-evaluación)
+   - [3.2 Herramientas](#32-herramientas)
+   - [3.3 Creación del entorno personalizado](#33-creación-del-entorno-personalizado)
+   - [3.4 Agentes implementados](#34-agentes-implementados)
+   - [3.5 Experimentos y resultados](#35-experimentos-y-resultados)
+   - [3.6 Visualización de resultados](#36-visualización-de-resultados)
+4. [Análisis y discusión de resultados](#4-análisis-y-discusión-de-resultados)
+   - [4.1 Agente Random](#41-agente-random)
+   - [4.2 Agente Racional](#42-agente-racional)
+   - [4.3 Agente Q-Learning](#43-agente-q-learning)
+   - [4.4 Agente PPO](#44-agente-ppo)
+5. [Conclusiones finales](#5-conclusiones-finales)
+6. [Referencias](#6-referencias)
+
+---
+
 ## 1. Introducción
 
 El Truco Argentino es un juego de cartas tradicional de dos jugadores, por turnos y de información imperfecta. Cada jugador recibe un conjunto reducido de cartas y, a lo largo de la mano, debe decidir cómo y cuándo jugar, cuándo aceptar o rechazar desafíos y cómo interpretar las señales del rival. La partida combina mecánicas de enfrentamiento directo con un componente fuerte de toma de decisiones bajo incertidumbre, ya que las cartas del oponente son desconocidas y la información disponible se construye a partir de las jugadas, los cantos y el contexto de la mano. En términos generales, se trata de un juego competitivo donde la estrategia depende tanto de la evaluación de la mano propia como de la lectura del oponente.
@@ -371,31 +395,49 @@ El agente entrenado mediante Proximal Policy Optimization con action masking.
 
 Los siguientes gráficos de violín muestran la distribución de puntos obtenidos por partida para cada enfrentamiento entre agentes. Cada violin representa la densidad de probabilidad de los puntajes finales, permitiendo observar no solo la tendencia central sino también la dispersión y la forma de la distribución. Los puntos individuales superpuestos corresponden a cada una de las 1000 partidas simuladas.
 
-![Figura 1: Distribución de puntos por partida entre Random y Rational. Se observa la clara superioridad del agente Rational, con una distribución concentrada en valores altos.](/game/plots/images/randomvsrational_violin.png)
+![](/game/plots/images/randomvsrational_violin.png)
 
-![Figura 2: Distribución de puntos por partida entre Random y Q-Learning. El agente Q-Learning muestra una distribución favorable con mayor concentración en puntajes altos.](/game/plots/images/randomvsq_learning_violin.png)
+_Figura 1: Distribución de puntos por partida entre Random y Rational. Se observa la clara superioridad del agente Rational, con una distribución concentrada en valores altos._
 
-![Figura 3: Distribución de puntos por partida entre Random y PPO. Ambas distribuciones presentan solapamiento considerable, reflejando el rendimiento similar observado en el win rate.](/game/plots/images/randomvssb3_violin.png)
+![](/game/plots/images/randomvsq_learning_violin.png)
 
-![Figura 4: Distribución de puntos por partida entre Rational y Q-Learning. Se observa un enfrentamiento más equilibrado con distribuciones que se superponen significativamente.](/game/plots/images/rationalvsq_learning_violin.png)
+_Figura 2: Distribución de puntos por partida entre Random y Q-Learning. El agente Q-Learning muestra una distribución favorable con mayor concentración en puntajes altos._
 
-![Figura 5: Distribución de puntos por partida entre Rational y PPO. Enfrentamiento muy parejo con distribuciones prácticamente simétricas.](/game/plots/images/rationalvssb3_violin.png)
+![](/game/plots/images/randomvssb3_violin.png)
 
-![Figura 6: Distribución de puntos por partida entre Q-Learning y PPO. Se observa una leve ventaja del agente PPO con distribución ligeramente desplazada hacia valores más altos.](/game/plots/images/q_learningvssb3_violin.png)
+_Figura 3: Distribución de puntos por partida entre Random y PPO. Ambas distribuciones presentan solapamiento considerable, reflejando el rendimiento similar observado en el win rate._
+
+![](/game/plots/images/rationalvsq_learning_violin.png)
+
+_Figura 4: Distribución de puntos por partida entre Rational y Q-Learning. Se observa un enfrentamiento más equilibrado con distribuciones que se superponen significativamente._
+
+![](/game/plots/images/rationalvssb3_violin.png)
+
+_Figura 5: Distribución de puntos por partida entre Rational y PPO. Enfrentamiento muy parejo con distribuciones prácticamente simétricas._
+
+![](/game/plots/images/q_learningvssb3_violin.png)
+
+_Figura 6: Distribución de puntos por partida entre Q-Learning y PPO. Se observa una leve ventaja del agente PPO con distribución ligeramente desplazada hacia valores más altos._
 
 #### Fuentes de puntos por agente
 
 Los siguientes gráficos de área apilada muestran el desglose de las fuentes de puntos obtenidos por los agentes de aprendizaje por refuerzo a lo largo de múltiples partidas. Las áreas representan la contribución de cada fuente: **Envido** (puntos ganados por cantos de envido), **Truco** (puntos ganados en manos donde se cantó truco), **Cartas** (puntos ganados en manos sin canto de truco), y **Abandono** (puntos ganados cuando el oponente se retira o rechaza un canto). Esta visualización permite observar cómo cada agente explota las diferentes mecánicas del juego para acumular puntos.
 
-![Figura 7: Fuentes de puntos del agente Q-Learning contra diferentes oponentes. Se observa una distribución equilibrada entre las distintas fuentes, con contribución significativa del truco y el envido.](/game/plots/images/q_learning_income_sources_area.png)
+![](/game/plots/images/q_learning_income_sources_area.png)
 
-![Figura 8: Fuentes de puntos del agente PPO contra diferentes oponentes. El agente muestra mayor variabilidad en la composición de sus fuentes de puntos entre partidas.](/game/plots/images/sb3_income_sources_area.png)
+_Figura 7: Fuentes de puntos del agente Q-Learning contra diferentes oponentes. Se observa una distribución equilibrada entre las distintas fuentes, con contribución significativa del truco y el envido._
+
+![](/game/plots/images/sb3_income_sources_area.png)
+
+_Figura 8: Fuentes de puntos del agente PPO contra diferentes oponentes. El agente muestra mayor variabilidad en la composición de sus fuentes de puntos entre partidas._
 
 #### Comparación de tasas de mentira
 
 El siguiente gráfico de barras compara las tasas de mentira de todos los agentes, calculadas a partir de los enfrentamientos entre ellos. Para cada agente se muestra el porcentaje de cantos realizados con mano desfavorable, tanto para **Truco** (cuando el promedio de fuerza de la mano es menor que la del oponente) como para **Envido** (cuando los puntos de envido son menores a 25). Esta métrica permite caracterizar el estilo de juego de cada agente en términos de agresividad y uso del mentiras.
 
-![Figura 9: Comparación de tasas de mentira por agente. El agente Rational presenta las tasas más bajas (nunca miente en envido), mientras que PPO y Random muestran las tasas más altas. Q-Learning presenta un comportamiento intermedio, resultado de su entrenamiento mixto.](/game/plots/images/bluff_rate_multi.png)
+![](/game/plots/images/bluff_rate_multi.png)
+
+_Figura 9: Comparación de tasas de mentira por agente. El agente Rational presenta las tasas más bajas (nunca miente en envido), mientras que PPO y Random muestran las tasas más altas. Q-Learning presenta un comportamiento intermedio, resultado de su entrenamiento mixto._
 
 #### Matrices de enfrentamientos
 
@@ -403,11 +445,15 @@ Las siguientes matrices de calor (heatmaps) resumen el rendimiento de cada agent
 
 El primer heatmap muestra el **win rate** (proporción de victorias) de cada enfrentamiento. Colores verdes indican un win rate alto (ventaja del agente de la fila), mientras que colores rojos indican un win rate bajo (desventaja).
 
-![Figura 10: Matriz de win rate entre todos los agentes. Se observa que Rational domina contra Random (0.94), mientras que los enfrentamientos entre los agentes de RL y Rational son más equilibrados.](/game/plots/images/matchup_heatmap_win_rate.png)
+![](/game/plots/images/matchup_heatmap_win_rate.png)
+
+_Figura 10: Matriz de win rate entre todos los agentes. Se observa que Rational domina contra Random (0.94), mientras que los enfrentamientos entre los agentes de RL y Rational son más equilibrados._
 
 El segundo heatmap muestra la **diferencia promedio de puntos** por partida. Valores positivos (azul) indican que el agente de la fila obtiene en promedio más puntos que su oponente; valores negativos (rojo) indican lo contrario.
 
-![Figura 11: Matriz de diferencia promedio de puntos entre todos los agentes. Esta métrica complementa el win rate mostrando la magnitud de la ventaja o desventaja en cada enfrentamiento.](/game/plots/images/matchup_heatmap_avg_diff.png)
+![](/game/plots/images/matchup_heatmap_avg_diff.png)
+
+_Figura 11: Matriz de diferencia promedio de puntos entre todos los agentes. Esta métrica complementa el win rate mostrando la magnitud de la ventaja o desventaja en cada enfrentamiento._
 
 ---
 
