@@ -11,10 +11,11 @@
 
 1. [Introducción](#1-introducción)
 2. [Marco teórico](#2-marco-teórico)
-   - [2.1 Aprendizaje por refuerzo (RL)](#21-aprendizaje-por-refuerzo-rl)
-   - [2.2 Políticas y evaluación de decisiones](#22-políticas-y-evaluación-de-decisiones)
-   - [2.3 Q-Learning y Monte Carlo Q-Learning](#23-q-learning-y-monte-carlo-q-learning)
-   - [2.4 PPO (Proximal Policy Optimization)](#24-ppo-proximal-policy-optimization)
+   - [2.1 El Truco Argentino](#21-el-truco-argentino)
+   - [2.2 Aprendizaje por refuerzo (RL)](#22-aprendizaje-por-refuerzo-rl)
+   - [2.3 Políticas y evaluación de decisiones](#23-políticas-y-evaluación-de-decisiones)
+   - [2.4 Q-Learning y Monte Carlo Q-Learning](#24-q-learning-y-monte-carlo-q-learning)
+   - [2.5 PPO (Proximal Policy Optimization)](#25-ppo-proximal-policy-optimization)
 3. [Diseño experimental](#3-diseño-experimental)
    - [3.1 Métricas](#31-métricas)
    - [3.2 Herramientas](#32-herramientas)
@@ -47,7 +48,55 @@ Este informe se organiza de la siguiente manera: primero se presenta el marco te
 
 ## 2. Marco teórico
 
-### 2.1 Aprendizaje por refuerzo (RL)
+### 2.1 El Truco Argentino
+
+El Truco Argentino [12] es un juego de cartas tradicional para dos jugadores (en la modalidad utilizada en este proyecto), de naturaleza competitiva y de información imperfecta. Se juega con un mazo español de 40 cartas (sin ochos ni nueves), y cada mano comienza con el reparto de tres cartas a cada jugador. La partida se juega a 30 puntos.
+
+#### Estructura de una mano
+
+Cada mano se compone de hasta tres **rondas**. En cada ronda, ambos jugadores juegan una carta y se comparan según una jerarquía de fuerza específica del juego. El jugador que gana dos de las tres rondas gana la mano. Si se producen empates (llamados **pardas**), se aplican reglas especiales: si la primera ronda empata, gana quien gane cualquiera de las siguientes; si la primera se gana y la segunda empata, gana quien ganó la primera; si las tres rondas empatan, gana el jugador que es **mano** (rol que alterna entre manos y determina quién juega primero).
+
+#### Jerarquía de cartas
+
+A diferencia de otros juegos de cartas, el Truco posee una jerarquía de fuerza no lineal que no sigue el orden numérico convencional. De mayor a menor fuerza, las cartas se ordenan así:
+
+1 de Espadas → 1 de Bastos → 7 de Espadas → 7 de Oros → 3 → 2 → 1 (copas/oros) → 12 → 11 → 10 → 7 (copas/bastos) → 6 → 5 → 4
+
+Esta jerarquía implica que un 3 supera a un 7 de copas, y que los ases de espadas y bastos son las cartas más poderosas del juego. Cada carta también posee un **valor de envido** independiente: los naipes del 1 al 7 contribuyen con su valor numérico, mientras que las figuras (10, 11, 12) contribuyen con cero.
+
+#### El Truco (apuesta por la mano)
+
+El **truco** es una apuesta sobre el resultado de la mano. En cualquier momento de su turno, un jugador puede **cantar truco**, desafiando al oponente a aceptar una apuesta de mayor valor. Las variantes escalan de la siguiente forma:
+
+| Canto       | Puntos si gana | Puntos si rechaza |
+| ----------- | -------------- | ----------------- |
+| Sin canto   | 1              | —                 |
+| Truco       | 2              | 1                 |
+| Retruco     | 3              | 2                 |
+| Vale cuatro | 4              | 3                 |
+
+Cuando se canta truco, el oponente puede **aceptar** (quiero), **rechazar** (no quiero, entregando los puntos correspondientes) o **re-cantar** (elevar al siguiente nivel). Solo el jugador que aceptó el nivel anterior puede proponer la escalada siguiente. Si un jugador rechaza, la mano termina inmediatamente. Un jugador también puede **ir al mazo** (retirarse de la mano) en cualquier momento, cediendo los puntos en juego.
+
+#### El Envido (apuesta por el tanto)
+
+El **envido** es una apuesta que se resuelve comparando el **tanto** de cada jugador, calculado a partir de sus cartas en mano. Solo puede cantarse durante la primera ronda, antes de que se jueguen cartas o inmediatamente después de que se juegue la primera carta. El tanto se calcula así: si el jugador tiene dos o más cartas del mismo palo, suma 20 puntos de base más los valores de envido de las dos cartas de mayor valor en ese palo; en caso contrario, el tanto es igual al valor de envido de su carta más alta.
+
+Las variantes del envido y su puntuación son:
+
+| Canto         | Puntos si gana                  | Puntos si rechaza              |
+| ------------- | ------------------------------- | ------------------------------ |
+| Envido        | 2                               | 1                              |
+| Envido-Envido | 4                               | 2                              |
+| Real Envido   | 3,5 o 7 (segun envido previo)   | 1, 2 o 4 (segun envido previo) |
+| Falta Envido  | 30 − puntos del ganador parcial | Puntos del nivel anterior      |
+
+El envido-envido solo puede cantarse como respuesta a un envido simple. El real envido puede cantarse directamente o como escalada. La falta envido puede proponerse desde cualquier estado del envido. El envido tiene prioridad sobre el truco e incluso puede interrumpir un canto de truco si se realiza en el momento oportuno.
+
+#### El rol de la mentira
+
+Un aspecto estratégico central del Truco es que los cantos (tanto de truco como de envido) **no requieren que el jugador tenga cartas que justifiquen la apuesta**. Un jugador puede cantar truco con una mano débil o envido con un tanto bajo, apostando a que el rival rechazará y cederá puntos. Esta mecánica de **mentira** introduce un componente de engaño que diferencia al Truco de juegos puramente basados en la fuerza de las cartas.
+
+### 2.2 Aprendizaje por refuerzo (RL)
 
 El **aprendizaje por refuerzo** [9] es un paradigma de aprendizaje automático donde un **agente** interactúa con un **entorno** tomando **acciones** y recibiendo **recompensas**. El objetivo del agente es aprender una **política** que maximice el beneficio esperado en el tiempo. En el Truco, el entorno es el juego, las acciones corresponden a las decisiones posibles (jugar una carta, cantar, aceptar o rechazar), y la recompensa se asocia al resultado en puntos.
 
@@ -63,22 +112,26 @@ Un concepto central es la formulación como **Proceso de Decisión de Markov Par
 
 En Truco, el estado completo incluye las cartas de ambos jugadores, pero el agente solo accede a una observación parcial (sus cartas e historial), lo que obliga a decidir bajo incertidumbre, integrando señales del rival y el contexto de la mano.
 
+El Truco pertenece a la categoría de **juegos de suma cero** [10]: todo punto que un jugador gana es un punto que el otro pierde. Formalmente, la suma de las utilidades de ambos jugadores es constante en cada resultado posible (**u₁ + u₂ = 0**). Esta propiedad implica que los intereses de los jugadores son estrictamente opuestos, lo que convierte cada decisión en un problema de optimización competitiva donde mejorar el propio desempeño necesariamente empeora el del rival.
+
 Además, al tratarse de un juego competitivo de dos jugadores, el análisis se vincula con nociones de **teoría de juegos**, como el **equilibrio de Nash** [10]. En términos generales, un perfil de estrategias **(π₁, π₂)** es un equilibrio de Nash si ninguna parte puede mejorar su resultado cambiando unilateralmente su estrategia, es decir:
 
 - **u₁(π₁, π₂) ≥ u₁(π₁', π₂)**
 - **u₂(π₁, π₂) ≥ u₂(π₁, π₂')**
 
-para cualquier estrategia alternativa **π₁'** o **π₂'**. En juegos de suma cero como el Truco, esta noción se relaciona con estrategias estables donde cada jugador se protege de la mejor respuesta del rival.
+para cualquier estrategia alternativa **π₁'** o **π₂'**. En juegos de suma cero, esta noción se relaciona con estrategias minimax, donde cada jugador busca minimizar la máxima ganancia posible del rival, lo que garantiza la protección contra la mejor respuesta del oponente.
 
 En esta clase de problemas también es habitual restringir las **acciones válidas** en cada turno para mantener la coherencia con las reglas del juego. Estas restricciones permiten que el agente concentre su aprendizaje en decisiones legítimas, evitando estados imposibles. En conjunto, estas características hacen del Truco un dominio natural para RL: decisiones secuenciales, información parcial y un fuerte componente estratégico que depende tanto de la mano propia como de la interpretación del oponente.
 
-### 2.2 Políticas y evaluación de decisiones
+Una técnica de entrenamiento particularmente relevante en juegos de suma cero es el **self-play** (auto-juego), donde el agente entrena jugando contra copias de sí mismo. En lugar de requerir un oponente externo predefinido, el agente actúa simultáneamente como jugador y como rival, lo que genera un proceso de co-evolución: a medida que el agente mejora, su oponente (que es él mismo) también mejora, forzando una adaptación continua. Esta dinámica puede aproximar estrategias de equilibrio de Nash, ya que el agente debe aprender a responder a un oponente que utiliza exactamente su misma política. El self-play ayuda a los agentes a descubrir estrategias robustas donde no existe un oponente optimo conocido.
+
+### 2.3 Políticas y evaluación de decisiones
 
 Una **política** define cómo decide el agente en función de lo que observa. Para comparar alternativas, se utilizan **criterios de evaluación** que estiman qué tan conveniente es una acción según las recompensas esperadas. Estas estimaciones permiten ordenar las decisiones disponibles y elegir la opción que, en promedio, conduce a mejores resultados. En un juego como el Truco, esta evaluación debe considerar que el efecto de una decisión puede manifestarse varios turnos después y que el rival influye activamente en el resultado.
 
 ---
 
-### 2.3 Q-Learning y Monte Carlo Q-Learning
+### 2.4 Q-Learning y Monte Carlo Q-Learning
 
 Q-Learning [9] es un algoritmo model-free de aprendizaje por refuerzo que aprende una función de acción-valor **Q(s,a)**, la cual estima la recompensa esperada al ejecutar una acción **a** en un estado **s** y continuar con la política aprendida. La actualización clásica, basada en diferencias temporales (TD), es:
 
@@ -92,8 +145,13 @@ Los componentes de esta fórmula son:
 
 - **Q(s,a):** el valor actual almacenado en la tabla para el par estado-acción.
 - **α (alpha):** la tasa de aprendizaje, que controla cuánto peso se da a la nueva información frente al valor previo.
-- **G:** el retorno acumulado, calculado como el resultado final descontado por γ en cada paso hacia atrás.
-- **γ (gamma):** el factor de descuento (γ ∈ [0, 1]), que controla cuánto peso se otorga al resultado final en función de la distancia temporal. Con γ < 1, las acciones más lejanas al desenlace reciben una señal progresivamente atenuada; con γ = 1, todas las decisiones de la secuencia reciben la misma importancia del resultado.
+- **G:** el retorno acumulado desde el paso _t_ hasta el final del episodio, definido como:
+
+  **Gₜ = rₜ + γ rₜ₊₁ + γ² rₜ₊₂ + … = Σₖ₌₀ᵀ⁻ᵗ γᵏ rₜ₊ₖ**
+
+  donde **rₜ₊ₖ** es la recompensa recibida en el paso _t+k_ y _T_ es el paso final del episodio.
+
+- **γ (gamma):** el factor de descuento (γ ∈ [0, 1]), que controla la importancia relativa de las recompensas futuras en el cálculo de G. Con γ < 1, las recompensas más lejanas se atenúan exponencialmente (γᵏ decrece a medida que _k_ crece), dando mayor peso a las consecuencias inmediatas. Con γ = 1, todas las recompensas del episodio contribuyen por igual al retorno, lo cual es apropiado en dominios donde el resultado final es lo que importa.
 
 #### Exploración y convergencia
 
@@ -105,7 +163,7 @@ Para garantizar la convergencia, es habitual aplicar un **decaimiento progresivo
 
 donde **ε₀** es el valor inicial de exploración, **t** es el episodio actual y **T** es el número total de episodios de entrenamiento. Esta función produce una curva suave que mantiene alta exploración en las primeras etapas (cuando el coseno está cerca de 1) y la reduce gradualmente hasta cero al final del entrenamiento (cuando el coseno alcanza 0). A diferencia del decaimiento lineal o exponencial, el decaimiento cosenoidal ofrece una transición más gradual en las fases intermedias, evitando reducciones bruscas de la exploración.
 
-### 2.4 PPO (Proximal Policy Optimization)
+### 2.5 PPO (Proximal Policy Optimization)
 
 **PPO (Proximal Policy Optimization)** [11] es un método de optimización de políticas que busca mejorar la estabilidad del entrenamiento evitando actualizaciones demasiado grandes. En lugar de cambiar la política libremente, impone un límite al cambio permitido en cada paso.
 
@@ -171,9 +229,9 @@ Para evaluar el desempeño de los algoritmos de aprendizaje por refuerzo descrit
 
 - **Agente Rational (baseline basado en reglas):** aplica reglas determinísticas para decidir según la fuerza percibida de la mano (criterios para cantar, aceptar o jugar cartas). Ofrece una política coherente y explicable, útil como referencia más exigente que el azar. Permite evaluar si el aprendizaje automático capta patrones estratégicos que superen heurísticas diseñadas manualmente.
 
-- **Agente Q-Learning (Monte Carlo):** implementación de Monte Carlo Q-Learning (sección 2.3) con discretización del espacio de estados y tabla de valores. Su naturaleza model-free permite aprender decisiones a partir de la interacción directa con el entorno, sin requerir un modelo explícito del rival ni de las transiciones.
+- **Agente Q-Learning (Monte Carlo):** implementación de Monte Carlo Q-Learning (sección 2.4) con discretización del espacio de estados y tabla de valores. Su naturaleza model-free permite aprender decisiones a partir de la interacción directa con el entorno, sin requerir un modelo explícito del rival ni de las transiciones.
 
-- **Agente PPO (MaskablePPO):** implementación de PPO (sección 2.4) mediante la librería Stable-Baselines3 [3], con una red neuronal como aproximador de función y enmascaramiento nativo de acciones [2]. Su capacidad de generalización a estados no visitados y la estabilidad del entrenamiento lo hacen especialmente adecuado para un dominio con alto componente de incertidumbre.
+- **Agente PPO (MaskablePPO):** implementación de PPO (sección 2.5) mediante la librería Stable-Baselines3 [3], con una red neuronal como aproximador de función y enmascaramiento nativo de acciones [2]. Su capacidad de generalización a estados no visitados y la estabilidad del entrenamiento lo hacen especialmente adecuado para un dominio con alto componente de incertidumbre.
 
 ### 3.4 Creación del entorno personalizado
 
@@ -300,7 +358,7 @@ El algoritmo Q-Learning requiere un espacio de estados discreto para construir s
 
 Esta codificación produce un espacio de estados manejable que captura las variables más relevantes para la toma de decisiones, evitando la explosión exponencial que ocurriría con una representación exhaustiva.
 
-La implementación utiliza la variante Monte Carlo Q-Learning [1] descrita en la sección 2.3, donde cada **episodio** se define como una **mano completa** del Truco (desde el reparto de cartas hasta que un jugador gana la mano o se retira). La estrategia de exploración sigue el esquema epsilon-greedy con decaimiento cosenoidal detallado en la sección 2.3, aplicado específicamente con un ε inicial de 0.5.
+La implementación utiliza la variante Monte Carlo Q-Learning [1] descrita en la sección 2.4, donde cada **episodio** se define como una **mano completa** del Truco (desde el reparto de cartas hasta que un jugador gana la mano o se retira). La estrategia de exploración sigue el esquema epsilon-greedy con decaimiento cosenoidal detallado en la sección 2.4, aplicado específicamente con un ε inicial de 0.5.
 
 ##### Recompensas a la hora de entrenar
 
@@ -312,7 +370,7 @@ La recompensa utilizada para el entrenamiento se calcula al finalizar cada mano,
 
 - **Acotamiento del rango:** la recompensa final se limita al intervalo [-1, 1] para evitar valores extremos que podrían desestabilizar la actualización de los valores Q.
 
-- **Inversión por perspectiva:** dado que el entrenamiento se realiza en modalidad self-play donde ambos jugadores aprenden simultáneamente, la recompensa se invierte según la perspectiva del jugador que realizó cada acción. Lo que es positivo para un jugador es negativo para el otro, reflejando la naturaleza de suma cero del juego.
+- **Inversión por perspectiva:** dado que el entrenamiento se realiza en modalidad self-play donde ambos jugadores aprenden simultáneamente, la recompensa se invierte según la perspectiva del jugador que realizó cada acción. Por ejemplo, si en una mano el Jugador 0 gana 2 puntos de truco y el Jugador 1 gana 1 punto de envido, la recompensa para el Jugador 0 es (2−1)/30 = +0.033, mientras que para el Jugador 1 es (1−2)/30 = −0.033. De esta forma, cada transición almacenada durante el episodio se actualiza con la recompensa correspondiente a la perspectiva del jugador que tomó esa decisión, reflejando la naturaleza de suma cero del juego.
 
 ##### Hiperparámetros del entrenamiento
 
@@ -339,7 +397,7 @@ En términos cuantitativos, el entrenamiento consistió en un total de 20 millon
 
 #### 3.5.2 PPO (Proximal Policy Optimization)
 
-La implementación se realizó utilizando la librería **Stable-Baselines3** [3], específicamente el módulo **MaskablePPO** de **sb3-contrib**, que proporciona una implementación del algoritmo PPO (sección 2.4) con soporte nativo para enmascaramiento de acciones (sección 2.4, Action Masking). La arquitectura utilizada es una red MLP que procesa directamente el vector de observación de trece dimensiones definido por el entorno base.
+La implementación se realizó utilizando la librería **Stable-Baselines3** [3], específicamente el módulo **MaskablePPO** de **sb3-contrib**, que proporciona una implementación del algoritmo PPO (sección 2.5) con soporte nativo para enmascaramiento de acciones (sección 2.5, Action Masking). La arquitectura utilizada es una red MLP que procesa directamente el vector de observación de trece dimensiones definido por el entorno base.
 
 ##### Wrapper de entorno para entrenamiento
 
@@ -347,13 +405,13 @@ El entrenamiento del agente PPO requirió la construcción de un envoltorio espe
 
 Durante cada paso del entorno, si el turno corresponde al oponente, el wrapper ejecuta automáticamente sus acciones utilizando el agente oponente configurado (que puede ser aleatorio, racional, o una versión anterior del propio modelo en el caso de self-play). Esta abstracción permite que el algoritmo PPO interactúe con el entorno como si fuera un problema de decisión de agente único, simplificando significativamente el proceso de entrenamiento.
 
-##### Recompensas a la hora de entrenar
+A diferencia de Q-Learning, que en self-play entrena ambos jugadores simultáneamente con recompensas invertidas, el agente PPO opera exclusivamente desde la perspectiva del Jugador 0. **El oponente no recibe recompensas ni aprende durante el entrenamiento de PPO**: es un agente externo fijo (aleatorio, racional, o un modelo previo) que simplemente ejecuta acciones cuando le corresponde el turno.
 
-El agente PPO utiliza directamente las recompensas proporcionadas por el entorno base, sin modificaciones adicionales. Estas recompensas reflejan los puntos obtenidos o perdidos según las reglas del Truco: puntos por ganar manos, puntos por envido aceptado o rechazado, y la bonificación terminal por ganar la partida. Las recompensas del oponente durante su turno automático se acumulan y se reportan al agente principal, manteniendo la coherencia de la señal desde la perspectiva de un único jugador.
+Las recompensas que recibe el agente PPO provienen del entorno y siempre están expresadas desde su perspectiva. Cuando el oponente realiza acciones durante su turno automático (gestionado por el wrapper), estas acciones pueden generar cambios en los puntos de la partida. El wrapper acumula las recompensas resultantes de los turnos del oponente y las suma a la recompensa del siguiente paso del agente. Por ejemplo, si el oponente canta envido y gana 2 puntos, esa pérdida se refleja como una recompensa negativa para el agente PPO. De esta forma, el agente percibe el efecto completo de las acciones del rival como parte de su propia señal de aprendizaje, sin necesidad de modelar explícitamente al oponente.
 
 ##### Hiperparámetros del entrenamiento
 
-El entrenamiento del agente PPO utilizó los valores por defecto proporcionados por la implementación MaskablePPO de la librería sb3-contrib. Estos hiperparámetros, ampliamente validados en la literatura y en aplicaciones prácticas, fueron los siguientes:
+El entrenamiento del agente PPO utilizó los valores por defecto proporcionados por la implementación MaskablePPO de la librería sb3-contrib.
 
 - **Learning rate = 3×10⁻⁴ - 1.5×10⁻⁴:** tasa de aprendizaje que controla la magnitud de las actualizaciones de los parámetros de la red neuronal en cada paso de optimización. Se entreno en diferentes etapas, empezando en 3x10⁻⁴ y bajandolo a 1.5x10⁻⁴ en las siguientes, para no olvidar lo aprendido en la primera.
 - **n_steps = 2048:** número de pasos de interacción con el entorno que se recolectan antes de realizar una actualización de la política. Este valor determina el tamaño del buffer de experiencias.
@@ -383,7 +441,7 @@ El entrenamiento total comprendió 50,000 timesteps en modalidad self-play (part
 
 Para evaluar el desempeño de los agentes desarrollados, se realizaron enfrentamientos de 1000 partidas entre cada par de agentes. A continuación se presentan los resultados organizados por agente evaluado.
 
-#### 3.5.1 Agente Random
+#### 3.6.1 Agente Random
 
 El agente aleatorio sirve como línea base para comparar el desempeño de los demás agentes.
 
@@ -393,7 +451,7 @@ El agente aleatorio sirve como línea base para comparar el desempeño de los de
 | Q-Learning | 23.2%    | 19.22           | 48%              | 62%               |
 | PPO        | 50.7%    | 25.75           | 45%              | 62%               |
 
-#### 3.5.2 Agente Racional
+#### 3.6.2 Agente Racional
 
 El agente racional implementa heurísticas diseñadas manualmente basadas en reglas del juego.
 
@@ -403,7 +461,7 @@ El agente racional implementa heurísticas diseñadas manualmente basadas en reg
 | Q-Learning | 57.9%    | 27.16           | 8%               | 0%                |
 | PPO        | 51.6%    | 26.83           | 10%              | 0%                |
 
-#### 3.5.3 Agente Q-Learning
+#### 3.6.3 Agente Q-Learning
 
 El agente entrenado mediante Monte Carlo Q-Learning en self-play y contra el agente racional.
 
@@ -413,7 +471,7 @@ El agente entrenado mediante Monte Carlo Q-Learning en self-play y contra el age
 | Rational | 43.0%    | 25.37           | 31%              | 55%               |
 | PPO      | 44.0%    | 24.15           | 35%              | 54%               |
 
-#### 3.5.4 Agente PPO
+#### 3.6.4 Agente PPO
 
 El agente entrenado mediante Proximal Policy Optimization con action masking.
 
@@ -650,3 +708,5 @@ La redacción y estructuración de este documento fue asistida por el modelo de 
 [10] Raoof, O., & Al-Raweshidy, H. (2011). _Theory of Games: An Introduction_. InTech. DOI: 10.5772/32940
 
 [11] Schulman, J., Wolski, F., Dhariwal, P., Radford, A., & Klimov, O. (2017). _Proximal Policy Optimization Algorithms_. arXiv preprint arXiv:1707.06347. Recuperado de https://arxiv.org/abs/1707.06347
+
+[12] Asociación Argentina de Truco (ASART). (2017). _Reglamento de Juego_.
