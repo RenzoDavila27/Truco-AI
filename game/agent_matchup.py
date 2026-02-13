@@ -1,13 +1,37 @@
 import argparse
 import csv
 import os
+import random
+import numpy as np
 from constantes import Acciones
 from truco_env import TrucoEnv
 from agents.registry import create_agent, get_agent_registry
 
+DEFAULT_QTABLE_NAME = "q_table.pkl"
+RL_QTABLE_DIR = os.path.join(
+    os.path.dirname(__file__),
+    "agents",
+    "RL-Agents",
+    "q_tables",
+)
 
-def _play_game(env, agent_0, agent_1):
-    env.reset()
+
+def _resolve_qtable_path(name):
+    if not name:
+        name = DEFAULT_QTABLE_NAME
+    root, ext = os.path.splitext(name)
+    if not ext:
+        name = f"{name}.pkl"
+    if os.path.isabs(name) or os.sep in name or "/" in name:
+        return name
+    return os.path.join(RL_QTABLE_DIR, name)
+
+
+def _play_game(env, agent_0, agent_1, seed=None):
+    if seed is not None:
+        random.seed(seed)
+        np.random.seed(seed)
+    env.reset(seed=seed)
     done = False
 
     hands_played = 0
@@ -74,7 +98,17 @@ def _play_game(env, agent_0, agent_1):
     }
 
 
-def main(agent_0, agent_1, games, output_name=None, summary_name=None):
+def main(
+    agent_0,
+    agent_1,
+    games,
+    output_name=None,
+    summary_name=None,
+    q_table_name=DEFAULT_QTABLE_NAME,
+    q_table_j0=None,
+    q_table_j1=None,
+    seed=None,
+):
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     results_dir = os.path.join(project_root, "resultados")
     os.makedirs(results_dir, exist_ok=True)
@@ -92,6 +126,8 @@ def main(agent_0, agent_1, games, output_name=None, summary_name=None):
         "game",
         "agent_0",
         "agent_1",
+        "q_table_j0",
+        "q_table_j1",
         "winner",
         "points_j0",
         "points_j1",
@@ -114,17 +150,40 @@ def main(agent_0, agent_1, games, output_name=None, summary_name=None):
     }
 
     env = TrucoEnv()
-    agent_0_inst = create_agent(agent_0_name)
-    agent_1_inst = create_agent(agent_1_name)
+    if agent_0_name == "q_learning":
+        q_table_j0_path = _resolve_qtable_path(q_table_j0 or q_table_name)
+    else:
+        q_table_j0_path = None
+    if agent_1_name == "q_learning":
+        q_table_j1_path = _resolve_qtable_path(q_table_j1 or q_table_name)
+    else:
+        q_table_j1_path = None
+
+    q_table_j0_label = q_table_j0_path if q_table_j0_path else "N/A"
+    q_table_j1_label = q_table_j1_path if q_table_j1_path else "N/A"
+
+    agent_0_inst = (
+        create_agent(agent_0_name, q_table_path=q_table_j0_path)
+        if agent_0_name == "q_learning"
+        else create_agent(agent_0_name)
+    )
+    agent_1_inst = (
+        create_agent(agent_1_name, q_table_path=q_table_j1_path)
+        if agent_1_name == "q_learning"
+        else create_agent(agent_1_name)
+    )
 
     with open(output_path, "w", newline="", encoding="utf-8") as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         for i in range(1, games + 1):
-            result = _play_game(env, agent_0_inst, agent_1_inst)
+            game_seed = None if seed is None else seed + i
+            result = _play_game(env, agent_0_inst, agent_1_inst, seed=game_seed)
             result["game"] = i
             result["agent_0"] = agent_0_name
             result["agent_1"] = agent_1_name
+            result["q_table_j0"] = q_table_j0_label
+            result["q_table_j1"] = q_table_j1_label
             writer.writerow(result)
             if result["winner"] == "J0":
                 totals["wins_j0"] += 1
@@ -156,6 +215,8 @@ def main(agent_0, agent_1, games, output_name=None, summary_name=None):
     with open(summary_path, "w", encoding="utf-8") as summary:
         summary.write(f"Agente J0: {agent_0_name}\n")
         summary.write(f"Agente J1: {agent_1_name}\n")
+        summary.write(f"Q-table J0: {q_table_j0_label}\n")
+        summary.write(f"Q-table J1: {q_table_j1_label}\n")
         summary.write(f"Partidas: {games}\n")
         summary.write(f"Victorias J0: {totals['wins_j0']}\n")
         summary.write(f"Victorias J1: {totals['wins_j1']}\n")
@@ -201,6 +262,37 @@ if __name__ == "__main__":
         default=None,
         help="Nombre del archivo de resumen.",
     )
+    parser.add_argument(
+        "--q-table-name",
+        default=DEFAULT_QTABLE_NAME,
+        help="Nombre o ruta de la Q-table a usar si hay agente q_learning.",
+    )
+    parser.add_argument(
+        "--q-table-j0",
+        default=None,
+        help="Nombre o ruta de la Q-table para J0 (si es q_learning).",
+    )
+    parser.add_argument(
+        "--q-table-j1",
+        default=None,
+        help="Nombre o ruta de la Q-table para J1 (si es q_learning).",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Seed para simulaciones reproducibles.",
+    )
     args = parser.parse_args()
 
-    main(args.agent_0, args.agent_1, args.games, args.output_csv, args.output_summary)
+    main(
+        args.agent_0,
+        args.agent_1,
+        args.games,
+        args.output_csv,
+        args.output_summary,
+        args.q_table_name,
+        args.q_table_j0,
+        args.q_table_j1,
+        args.seed,
+    )

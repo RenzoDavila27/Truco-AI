@@ -3,6 +3,7 @@ import os
 
 from agents.random_agent import RandomAgent
 from agents.rational_agent import RationalAgent
+from agents.sb3_league_agent import SB3LeagueAgent
 
 
 def _load_q_learning_agent():
@@ -42,13 +43,16 @@ def get_agent_registry():
         "random": RandomAgent,
         "rational": RationalAgent,
         "q_learning": _load_q_learning_agent(),
-        "sb3": _load_sb3_agent()
+        "sb3": _load_sb3_agent(),
+        "sb3_league": SB3LeagueAgent,
     }
 
 
-def create_agent(name):
+def create_agent(name, **kwargs):
     registry = get_agent_registry()
     if name not in registry:
         available = ", ".join(sorted(registry.keys()))
         raise ValueError(f"Agente desconocido: {name}. Disponibles: {available}")
+    if name == "q_learning":
+        return registry[name](**kwargs)
     return registry[name]()

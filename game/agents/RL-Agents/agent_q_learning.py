@@ -46,8 +46,20 @@ class QLearningAgent:
 
         mano_ranks = self._sorted_hand_ranks(obs[0:3])
 
-        rival_ranks_list = [int(r) for r in obs[3:6] if int(r) > 0]
-        max_rival_mesa = max(rival_ranks_list) if rival_ranks_list else 0
+        cartas_jugadas = estado.cartas_jugadas
+        rondas_completadas = len(cartas_jugadas) // 2
+
+        def ganador_baza_por_indice(start_idx):
+            carta_a, jugador_a = cartas_jugadas[start_idx]
+            carta_b, jugador_b = cartas_jugadas[start_idx + 1]
+            resultado = env.logic.determinar_ganador_mano(carta_a, carta_b)
+            if resultado == 2:
+                return 3
+            ganador = jugador_a if resultado == 0 else jugador_b
+            return 1 if ganador == player_id else 2
+
+        ganador_r1 = ganador_baza_por_indice(0) if rondas_completadas >= 1 else 0
+        ganador_r2 = ganador_baza_por_indice(2) if rondas_completadas >= 2 else 0
 
         if player_id == 0:
             mis_puntos = int(obs[6])
@@ -75,7 +87,8 @@ class QLearningAgent:
 
         return (
             mano_ranks,         # Tupla (R1, R2, R3)
-            max_rival_mesa,     # Int (0-14)
+            ganador_r1,         # Int (0-3)
+            ganador_r2,         # Int (0-3)
             mi_zona,            # Int (0-2)
             rival_zona,         # Int (0-2)
             voy_ganando,        # Bool (0-1)

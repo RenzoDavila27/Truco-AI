@@ -1,11 +1,13 @@
 Agente J0: rational
 Agente J1: q_learning
+Q-table J0: N/A
+Q-table J1: C:\Users\Ramiro\Desktop\Truco-AI\game\agents\RL-Agents\q_tables\q_table_ep49019.pkl
 Partidas: 1000
-Victorias J0: 579
-Victorias J1: 421
+Victorias J0: 910
+Victorias J1: 90
 Empates: 0
-Promedio puntos J0: 27.16
-Promedio puntos J1: 26.06
-Promedio manos jugadas: 27.56
-Promedio manos ganadas J0: 14.64
-Promedio manos ganadas J1: 12.92
+Promedio puntos J0: 28.51
+Promedio puntos J1: 13.46
+Promedio manos jugadas: 16.27
+Promedio manos ganadas J0: 9.75
+Promedio manos ganadas J1: 6.52

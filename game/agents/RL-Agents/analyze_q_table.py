@@ -113,6 +113,30 @@ def _top_states_by_action(q_table, action_id, top_n=5):
     entries.sort(key=lambda item: item[1], reverse=True)
     return entries[:top_n]
 
+def _format_state(state):
+    if not isinstance(state, tuple) or len(state) != 10:
+        return str(state)
+    (
+        mano_ranks,
+        ganador_r1,
+        ganador_r2,
+        mi_zona,
+        rival_zona,
+        voy_ganando,
+        nivel_truco,
+        estado_envido,
+        soy_mano,
+        ronda,
+    ) = state
+    return (
+        f"mano={mano_ranks}, "
+        f"g_r1={ganador_r1}, g_r2={ganador_r2}, "
+        f"z_mi={mi_zona}, z_rival={rival_zona}, "
+        f"voy_g={voy_ganando}, truco={nivel_truco}, "
+        f"envido={estado_envido}, mano={soy_mano}, "
+        f"ronda={ronda}"
+    )
+
 
 def main():
     q_table = _load_q_table(QTABLE_PATH)
@@ -138,7 +162,7 @@ def main():
         top_entries = _top_states_by_action(q_table, action_id)
         print(f"{action_name}:")
         for (state_action, value) in top_entries:
-            print(f"  - Q={value} | state={state_action[0]}")
+            print(f"  - Q={value} | state={_format_state(state_action[0])}")
 
 
 if __name__ == "__main__":
