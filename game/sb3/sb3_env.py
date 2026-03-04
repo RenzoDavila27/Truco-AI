@@ -1,3 +1,4 @@
+import math
 import os
 import sys
 from typing import Callable, Optional
@@ -19,12 +20,13 @@ class TrucoSB3Env(gym.Env):
 
     metadata = {"render_modes": ["human", "ansi"], "render_fps": 1}
 
-    def __init__(self, opponent: str | object = "random"):
+    def __init__(self, opponent: str | object = "random", reward_alpha: float = 10.0):
         super().__init__()
         self._env = TrucoEnv()
         self.action_space = self._env.action_space
         self.observation_space = self._env.observation_space
         self._opponent = self._make_opponent(opponent)
+        self._reward_alpha = reward_alpha
 
     def _make_opponent(self, opponent: str):
         if hasattr(opponent, "choose_action"):
@@ -44,13 +46,18 @@ class TrucoSB3Env(gym.Env):
         obs, _, done, info = self._auto_play_until_player(obs, info)
         return obs, info
 
+    def _normalize_reward(self, reward: float) -> float:
+        """Comprime el reward al rango [-1, 1] via tanh."""
+        return math.tanh(reward / self._reward_alpha)
+
     def step(self, action: int):
         obs, reward, terminated, truncated, info = self._env.step(action, player_id=0)
         if terminated or truncated:
-            return obs, reward, terminated, truncated, info
+            return obs, self._normalize_reward(reward), terminated, truncated, info
         obs, opp_reward, done, info = self._auto_play_until_player(obs, info)
         terminated = terminated or done
-        return obs, reward + opp_reward, terminated, truncated, info
+        raw = reward + opp_reward
+        return obs, self._normalize_reward(raw), terminated, truncated, info
 
     def _auto_play_until_player(self, obs, info):
         done = False

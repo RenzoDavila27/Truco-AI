@@ -107,6 +107,8 @@ def main(
     q_table_name=DEFAULT_QTABLE_NAME,
     q_table_j0=None,
     q_table_j1=None,
+    model_j0=None,
+    model_j1=None,
     seed=None,
 ):
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -162,16 +164,18 @@ def main(
     q_table_j0_label = q_table_j0_path if q_table_j0_path else "N/A"
     q_table_j1_label = q_table_j1_path if q_table_j1_path else "N/A"
 
-    agent_0_inst = (
-        create_agent(agent_0_name, q_table_path=q_table_j0_path)
-        if agent_0_name == "q_learning"
-        else create_agent(agent_0_name)
-    )
-    agent_1_inst = (
-        create_agent(agent_1_name, q_table_path=q_table_j1_path)
-        if agent_1_name == "q_learning"
-        else create_agent(agent_1_name)
-    )
+    def _create(name, q_path, m_path):
+        kwargs = {}
+        if name == "q_learning" and q_path:
+            kwargs["q_table_path"] = q_path
+        if name in ("sb3", "sb3_league") and m_path:
+            kwargs["model_path"] = m_path
+        if kwargs:
+            return create_agent(name, **kwargs)
+        return create_agent(name)
+
+    agent_0_inst = _create(agent_0_name, q_table_j0_path, model_j0)
+    agent_1_inst = _create(agent_1_name, q_table_j1_path, model_j1)
 
     with open(output_path, "w", newline="", encoding="utf-8") as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -278,6 +282,16 @@ if __name__ == "__main__":
         help="Nombre o ruta de la Q-table para J1 (si es q_learning).",
     )
     parser.add_argument(
+        "--model-j0",
+        default=None,
+        help="Ruta al modelo .zip para J0 (si es sb3 o sb3_league).",
+    )
+    parser.add_argument(
+        "--model-j1",
+        default=None,
+        help="Ruta al modelo .zip para J1 (si es sb3 o sb3_league).",
+    )
+    parser.add_argument(
         "--seed",
         type=int,
         default=None,
@@ -294,5 +308,7 @@ if __name__ == "__main__":
         args.q_table_name,
         args.q_table_j0,
         args.q_table_j1,
+        args.model_j0,
+        args.model_j1,
         args.seed,
     )

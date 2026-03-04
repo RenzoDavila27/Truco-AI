@@ -1,0 +1,13 @@
+Agente J0: random
+Agente J1: q_learning
+Q-table J0: N/A
+Q-table J1: /home/renzo/Escritorio/fac/IA1/Truco-AI/game/agents/RL-Agents/q_tables/exp2_vs_rational_789987.pkl
+Partidas: 1000
+Victorias J0: 339
+Victorias J1: 661
+Empates: 0
+Promedio puntos J0: 15.62
+Promedio puntos J1: 22.75
+Promedio manos jugadas: 6.00
+Promedio manos ganadas J0: 1.16
+Promedio manos ganadas J1: 4.85

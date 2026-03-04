@@ -1,0 +1,28 @@
+Agente J0: random
+Agente J1: sb3_league
+Partidas: 1000
+Llamados Truco totales: 18426
+Llamados Envido totales: 7915
+Aceptados: 10552
+Rechazados: 7588
+Subidas: 6256
+
+Agente random:
+Llamados Truco: 5787
+Llamados con mano mas debil: 2811
+Tasa de mentira: 0.49
+Manos ganadas tras cantar: 839
+Tasa de exito en cantos: 0.14
+Llamados Envido: 5701
+Llamados Envido con tanto menor: 3576
+Tasa de mentira Envido: 0.63
+
+Agente sb3_league:
+Llamados Truco: 12639
+Llamados con mano mas debil: 5612
+Tasa de mentira: 0.44
+Manos ganadas tras cantar: 11707
+Tasa de exito en cantos: 0.93
+Llamados Envido: 2214
+Llamados Envido con tanto menor: 1222
+Tasa de mentira Envido: 0.55

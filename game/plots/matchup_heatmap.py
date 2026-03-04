@@ -64,6 +64,8 @@ def main() -> None:
     agents: set[str] = set()
 
     for csv_path in results_dir.glob("*results.csv"):
+        if "bluff" in csv_path.name or "sources" in csv_path.name:
+            continue
         agent_0, agent_1, win_rate_j0, avg_diff_j0 = load_matchup_stats(csv_path)
         agents.update([agent_0, agent_1])
         stats[(agent_0, agent_1)] = {

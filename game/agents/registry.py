@@ -3,7 +3,7 @@ import os
 
 from agents.random_agent import RandomAgent
 from agents.rational_agent import RationalAgent
-from agents.sb3_league_agent import SB3LeagueAgent
+from sb3.sb3_league_agent import SB3LeagueAgent
 
 
 def _load_q_learning_agent():
@@ -27,13 +27,13 @@ def _load_sb3_agent():
     spec.loader.exec_module(module)
     sb3_agent_cls = module.SB3Agent
 
-    def _factory():
+    def _factory(**kwargs):
         game_dir = os.path.abspath(os.path.join(base_dir, ".."))
         model_path = os.getenv(
             "SB3_TRUCO_MODEL",
             os.path.join(game_dir, "sb3", "models", "ppo_truco"),
         )
-        return sb3_agent_cls(model_path=model_path)
+        return sb3_agent_cls(model_path=model_path, **kwargs)
 
     return _factory
 
@@ -53,6 +53,6 @@ def create_agent(name, **kwargs):
     if name not in registry:
         available = ", ".join(sorted(registry.keys()))
         raise ValueError(f"Agente desconocido: {name}. Disponibles: {available}")
-    if name == "q_learning":
+    if name in ("q_learning", "sb3", "sb3_league"):
         return registry[name](**kwargs)
     return registry[name]()

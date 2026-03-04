@@ -1,13 +1,15 @@
 # Truco-AI
 
-Proyecto de Truco Argentino (1v1, sin flor) con un motor de reglas, un entorno tipo Gymnasium y un modo de juego por consola contra agentes simples.
+Proyecto de Inteligencia Artificial para el Truco Argentino (1v1, sin flor). Incluye un motor de reglas completo, un entorno tipo Gymnasium, agentes heurísticos y dos agentes de aprendizaje por refuerzo (Q-Learning y PPO con MaskablePPO). El agente PPO, entrenado mediante una liga de oponentes, logra dominar todos los enfrentamientos con win rates del 76–93%.
 
 ## Funcionalidades principales
 
-- Motor de reglas de Truco (rondas, puntos, envido, truco y niveles de apuesta).
-- Entorno estilo Gymnasium para entrenamiento o self-play.
-- Agentes random y racional.
+- Motor de reglas completo de Truco Argentino (rondas, puntos, envido, truco y niveles de apuesta).
+- Entorno estilo Gymnasium para entrenamiento y evaluación.
+- 5 agentes: Random, Racional, Q-Learning, SB3 (PPO simple) y SB3 League (PPO con liga de oponentes).
 - Juego por consola humano vs agente configurable.
+- Simulador de enfrentamientos masivos con estadísticas (matchup y bluff).
+- Generación de gráficos: violín, heatmaps, barras de mentira, áreas de fuentes de puntos, convergencia y losses.
 
 ## Requisitos
 
@@ -37,43 +39,66 @@ pip install -r requirements.txt
 
 ## Estructura del proyecto
 
-- `game/constantes.py`: Definiciones de palos, mazo, rankings y enumeracion de acciones.
+### Motor y entorno
+
+- `game/constantes.py`: Definiciones de palos, mazo, rankings y enumeración de acciones.
 - `game/truco_logic.py`: Motor de reglas y estado del juego (turnos, rondas, cantos, puntajes).
 - `game/truco_env.py`: Wrapper tipo Gymnasium que expone `reset`, `step` y `get_action_mask`.
-- `game/agents/random_agent.py`: Agente aleatorio que elige acciones validas.
-- `game/agents/rational_agent.py`: Agente con reglas deterministicas (envido/truco/cartas).
-- `game/agents/registry.py`: Registro de agentes disponibles.
-- `game/console_game.py`: Juego 1v1 por consola (humano vs agente configurable).
-- `game/agent_vs_agent.py`: Partida completa entre agentes configurables.
-- `game/agent_matchup.py`: Simulador de multiples partidas con estadisticas.
-- `game/agent_bluff_matchup.py`: Simulador de partidas con recoleccion de tasas de mentira.
+
+### Agentes
+
+- `game/agents/random_agent.py`: Agente aleatorio que elige acciones válidas al azar.
+- `game/agents/rational_agent.py`: Agente con reglas determinísticas (envido/truco/cartas).
+- `game/agents/registry.py`: Registro central de agentes disponibles.
 - `game/agents/RL-Agents/agent_q_learning.py`: Agente Q-Learning con Q-Table persistida.
+- `game/sb3/sb3_agent.py`: Wrapper para cargar modelos SB3 como agente.
+- `game/sb3/sb3_league_agent.py`: Agente que carga la política PPO de la liga de oponentes.
+
+### Entrenamiento
+
 - `game/agents/RL-Agents/train_q_learning.py`: Entrenamiento Q-Learning en self-play.
 - `game/agents/RL-Agents/train_q_learning_vs_agent.py`: Entrenamiento Q-Learning contra un agente fijo.
-- `game/agents/RL-Agents/analyze_q_table.py`: Analisis de Q-Table con resumen por acciones y top valores.
-- `game/sb3/sb3_env.py`: Wrapper compatible con Stable-Baselines3.
 - `game/sb3/sb3_train.py`: Entrenamiento PPO con action masking (MaskablePPO).
-- `game/sb3/sb3_agent.py`: Wrapper para cargar modelos SB3 como agente.
-- `game/sb3/models/`: Modelos entrenados con SB3.
-- `game/plots/points_violin.py`: Generador de graficos de violin para distribucion de puntos.
-- `game/plots/points_boxplot.py`: Generador de graficos boxplot para puntos.
-- `game/plots/bluff_rate_bars.py`: Generador de graficos de barras para tasas de mentira.
-- `game/plots/matchup_heatmap.py`: Generador de heatmaps para resultados de matchups.
-- `game/plots/points_sources_area.py`: Generador de graficos de area para fuentes de puntos.
-- `resultados/`: Directorio con CSVs y resumenes de simulaciones.
-- `referencias/`: Directorio con papers y documentacion de referencia.
+- `game/sb3/sb3_league_train.py`: Entrenamiento PPO mediante liga de oponentes (self-play + heurísticos + snapshots).
+- `game/sb3/sb3_league.py`: Implementación de la liga de oponentes (selección probabilística).
+
+### Simulación y evaluación
+
+- `game/console_game.py`: Juego 1v1 por consola (humano vs agente configurable).
+- `game/agent_vs_agent.py`: Partida completa entre agentes configurables.
+- `game/agent_matchup.py`: Simulador de múltiples partidas con estadísticas (win rate, puntos, manos jugadas/ganadas).
+- `game/agent_bluff_matchup.py`: Simulador con recolección de estadísticas de mentira (truco y envido).
+- `game/agents/RL-Agents/analyze_q_table.py`: Análisis de Q-Table con resumen por acciones y top valores.
+
+### Generación de gráficos
+
+- `game/plots/points_violin.py`: Gráficos de violín para distribución de puntos.
+- `game/plots/points_boxplot.py`: Gráficos boxplot para puntos.
+- `game/plots/bluff_rate_bars.py`: Barras de tasas de mentira por agente.
+- `game/plots/matchup_heatmap.py`: Heatmaps de win rate y diferencia de puntos.
+- `game/plots/points_sources_area.py`: Gráficos de área para fuentes de puntos (envido/truco/cartas/abandono).
+- `game/plots/bluff_rate_q_experiments.py`: Comparación de tasas de mentira entre experimentos Q-Learning.
+- `game/plots/accept_rate_q_experiments.py`: Tasas de aceptación por experimento Q-Learning.
+- `game/agents/RL-Agents/plot_q_learning_convergence.py`: Curvas de convergencia de Q-Learning.
+- `game/sb3/plot_sb3_snapshots.py`: Curvas de evaluación de snapshots PPO durante entrenamiento.
+- `game/sb3/plot_ppo_loss.py`: Gráficos de losses de entrenamiento PPO.
+
+### Otros
+
+- `game/sb3/models/`: Modelos entrenados (PPO league y snapshots).
+- `game/agents/RL-Agents/q_tables/`: Q-Tables entrenadas.
+- `resultados/`: CSVs y resúmenes de simulaciones.
+- `referencias/`: Papers y documentación de referencia.
 - `proyecto_final.md`: Informe final del proyecto.
-- `readmeDesafio.md`: Documento original del desafio y contexto teorico.
+- `readmeDesafio.md`: Documento original del desafío y contexto teórico.
 
 ## Jugar contra un agente (consola)
-
-Ejecuta el juego 1v1 desde la raiz del repo:
 
 ```bash
 python3 game/console_game.py
 ```
 
-Opciones utiles:
+Opciones útiles:
 
 ```bash
 # Elegir jugador humano (0 o 1)
@@ -83,163 +108,167 @@ python3 game/console_game.py --human-player 1
 python3 game/console_game.py --mode debug
 
 # Elegir el agente rival
-python3 game/console_game.py --agent random
+python3 game/console_game.py --agent sb3_league
 ```
-
-Durante la partida, el juego imprime las acciones validas y el estado actual. El rival (agente) juega automaticamente cuando le corresponde.
 
 Agentes disponibles (ver `game/agents/registry.py`):
 
-- `random`: elige acciones validas al azar.
-- `rational`: reglas deterministicas para envido, truco y eleccion de cartas.
-- `q_learning`: toma la decision segun su q_table (si es vacia o no existe el archivo, tomara decisiones greedy).
-- `sb3`: modelo PPO de SB3 (usa `SB3_TRUCO_MODEL` si se define).
+| Agente       | Descripción                                                            |
+| ------------ | ---------------------------------------------------------------------- |
+| `random`     | Elige acciones válidas al azar.                                        |
+| `rational`   | Reglas determinísticas para envido, truco y elección de cartas.        |
+| `q_learning` | Decisión según Q-Table (si está vacía, comportamiento casi aleatorio). |
+| `sb3`        | Modelo PPO de SB3 (usa `SB3_TRUCO_MODEL` si se define).                |
+| `sb3_league` | Modelo PPO entrenado con liga de oponentes (el más fuerte).            |
 
-## Agente vs agente
+## Matchup de agentes
 
-Simula una partida completa entre dos agentes:
+Simula múltiples partidas y guarda estadísticas:
 
 ```bash
-python3 game/agent_vs_agent.py
+python3 game/agent_matchup.py --agent-0 sb3_league --agent-1 rational --games 1000
 ```
 
-Opciones utiles:
+Parámetros principales:
+
+- `--agent-0` / `--agent-1`: agentes para J0 y J1.
+- `--games`: cantidad de partidas.
+- `--output-csv` / `--output-summary`: nombres de los archivos de salida (en `resultados/`).
+- `--q-table-j0` / `--q-table-j1`: Q-Table específica para J0/J1 (si es `q_learning`).
+- `--model-j0` / `--model-j1`: modelo `.zip` específico para J0/J1 (si es `sb3` o `sb3_league`).
+- `--seed`: seed para resultados reproducibles.
+
+### Matchup con estadísticas de mentira
 
 ```bash
-# Elegir agentes para J0 y J1
-python3 game/agent_vs_agent.py --agent-0 rational --agent-1 random
-
-# Ver todo el estado (modo debug)
-python3 game/agent_vs_agent.py --render debug
+python3 game/agent_bluff_matchup.py --agent-0 q_learning --agent-1 sb3_league --games 1000 --seed 2026
 ```
 
-## Matchup de agentes (estadisticas)
+Acepta los mismos parámetros que `agent_matchup.py`. Genera CSVs con datos detallados de cada canto (truco/envido), incluyendo fuerza de mano, puntos de envido, y si el canto fue una mentira.
 
-Simula multiples partidas y guarda estadisticas en CSV y un resumen en TXT:
+## Agente Q-Learning
 
-```bash
-python3 game/agent_matchup.py --agent-0 random --agent-1 rational --games 200
-```
+El agente Q-Learning usa una Q-Table persistida en `game/agents/RL-Agents/q_tables/`. Se seleccionó el Experimento 2 (entrenado contra racional) como política definitiva.
 
-Opciones utiles:
+### Entrenamiento
 
 ```bash
-# Personalizar archivos de salida
-python3 game/agent_matchup.py --agent-0 q_learning --agent-1 rational --games 500 --output-csv q_learningvsrationalresults.csv --output-summary q_learningvsrationalsummary.txt
-```
+# Self-play
+python3 game/agents/RL-Agents/train_q_learning.py --episodes 1000000
 
-Parametros principales:
-
-- `--agent-0`: agente para J0 (ver registry).
-- `--agent-1`: agente para J1 (ver registry).
-- `--games`: cantidad de partidas a simular.
-- `--output-csv`: nombre del CSV de salida (se guarda en `resultados/`).
-- `--output-summary`: nombre del TXT de resumen (se guarda en `resultados/`).
-
-## Agente Q-Learning (RL)
-
-El agente Q-Learning esta en `game/agents/RL-Agents/agent_q_learning.py`. Usa una Q-Table persistida en `game/agents/RL-Agents/q_tables/q_table.pkl` para elegir acciones de forma greedy (explotacion).
-
-### Metodo de entrenamiento (resumen)
-
-- Entrenamiento por manos (episodios cortos), con actualizacion tipo Monte Carlo sobre el retorno final de la mano.
-- Rewards principales: diferencia de puntos de la mano normalizada, penalizacion por jugadas invalidas y pequena penalizacion por irse al mazo.
-- Episodios usados como referencia: ~20M episodios de self-play y ~700k episodios contra el agente racional.
-- Q-Table entrenada: **[[link de descarga](https://drive.google.com/file/d/1_nmCoLXxLDg0361OvnOxTrOd8zFxHb0Y/view?usp=sharing)]**.
-
-### Entrenamiento (self-play)
-
-Entrena al agente jugando contra si mismo:
-
-```bash
-python3 game/agents/RL-Agents/train_q_learning.py --episodes 1000
-```
-
-Opciones utiles:
-
-```bash
-python3 game/agents/RL-Agents/train_q_learning.py --episodes 5000 --alpha 0.1 --gamma 0.95 --epsilon 0.1
-```
-
-Si el entrenamiento se cancela con Ctrl+C, la Q-Table se guarda automaticamente.
-
-### Entrenamiento vs agente fijo
-
-Entrena el agente Q-Learning contra un agente fijo (no self-play):
-
-```bash
+# Contra agente fijo
 python3 game/agents/RL-Agents/train_q_learning_vs_agent.py --episodes 1000 --opponent rational
 ```
 
-Parametros principales:
+Parámetros principales:
 
 - `--episodes`: cantidad de episodios.
 - `--alpha`: learning rate.
 - `--gamma`: discount factor.
-- `--epsilon`: epsilon inicial para exploracion (decae con coseno).
+- `--epsilon`: epsilon inicial para exploración (decae con coseno).
 - `--reset-q-table`: reinicia la Q-Table antes de entrenar.
-- `--opponent`: agente oponente (ver registry).
-- `--q-player`: posicion del Q-Learning (0 o 1).
+- `--opponent`: agente oponente (solo para `train_q_learning_vs_agent.py`).
+- `--q-table-name`: nombre del archivo de la Q-Table.
 
-### Analisis de Q-Table
+Si el entrenamiento se cancela con Ctrl+C, la Q-Table se guarda automáticamente.
 
-Genera un reporte con estadisticas de la Q-Table:
-
-```bash
-python3 game/agents/RL-Agents/analyze_q_table.py --output q_table_report.txt
-```
-
-Parametros principales:
-
-- `--input`: ruta de la Q-Table (por defecto `game/agents/RL-Agents/q_tables/q_table.pkl`).
-- `--output`: ruta del reporte de salida.
-
-### Uso en consola
-
-Para jugar contra el agente entrenado:
+### Gráficos de convergencia
 
 ```bash
-python3 game/console_game.py --agent q_learning
+python3 game/agents/RL-Agents/plot_q_learning_convergence.py \
+    --q-tables-dir game/agents/RL-Agents/q_tables \
+    --opponent rational --games 200
 ```
 
-La tabla se carga automaticamente al iniciar el agente. Si no existe, juega con valores Q en cero (comportamiento casi aleatorio).
+## Agente PPO (MaskablePPO)
 
-## Entrenamiento SB3 (MaskablePPO)
+### Entrenamiento simple
 
-Entrena un agente PPO con action masking:
+Entrena un agente PPO con action masking contra un oponente fijo o en self-play:
 
 ```bash
 python3 game/sb3/sb3_train.py --timesteps 200000 --opponent random
 ```
 
-Opciones utiles:
+### Entrenamiento con liga de oponentes (recomendado)
+
+El entrenamiento por liga combina self-play, agentes heurísticos y snapshots de versiones anteriores del agente. Se realizaron tres experimentos variando la distribución de probabilidades:
+
+| Experimento | Self-play | Heurísticos | Snapshots |
+| ----------- | --------- | ----------- | --------- |
+| Exp. 1      | 50%       | 0%          | 50%       |
+| Exp. 2      | 30%       | 40%         | 30%       |
+| Exp. 3      | 20%       | 60%         | 20%       |
+
+Se seleccionó el Experimento 3 como política definitiva (mejor desempeño global).
 
 ```bash
-python3 game/sb3/sb3_train.py --timesteps 500000 --opponent selfplay --selfplay-winrate 0.8
+python3 game/sb3/sb3_league_train.py \
+    --timesteps 20000000 \
+    --check-freq 200000 \
+    --history-dir game/sb3/models/history_league_20_60_20 \
+    --output game/sb3/models/ppo_truco_league_20_60_20 \
+    --loss-csv resultados/ppo_training_losses.csv
 ```
 
-Parametros principales:
+> **Nota:** Las probabilidades de la liga (self-play / heurísticos / snapshots) se configuran editando los defaults del `LeaguePool` en `game/sb3/sb3_league.py` (atributos `self_play_weight`, `heuristic_weight`, `snapshot_weight`).
 
-- `--timesteps`: pasos de entrenamiento.
-- `--opponent`: `random`, `rational` o `selfplay`.
-- `--output`: ruta del modelo (default `game/sb3/models/ppo_truco`).
-- `--selfplay-snapshot`: snapshot del oponente en self-play.
-
-Para usar el modelo entrenado en consola:
-
-Linux/Mac:
+### Gráficos de entrenamiento PPO
 
 ```bash
-SB3_TRUCO_MODEL=game/sb3/models/ppo_truco python3 game/console_game.py --agent sb3
+# Curvas de evaluación durante entrenamiento
+python3 game/sb3/plot_sb3_snapshots.py \
+    --history-dir game/sb3/models/history_league_20_60_20 \
+    --opponent rational --games 200
+
+# Losses de entrenamiento
+python3 game/sb3/plot_ppo_loss.py --csv resultados/ppo_training_losses.csv --output ppo_loss.png
 ```
 
-Windows (PowerShell):
+### Uso en consola
 
-```powershell
-$env:SB3_TRUCO_MODEL="game\\sb3\\models\\ppo_truco"
-python game\\console_game.py --agent sb3
+```bash
+python3 game/console_game.py --agent sb3_league
 ```
+
+El agente `sb3_league` carga automáticamente `game/sb3/models/ppo_truco_league.zip`. Se puede forzar otro modelo con la variable de entorno `SB3_TRUCO_LEAGUE_MODEL`.
+
+## Generación de gráficos de resultados
+
+```bash
+# Violin plot de distribución de puntos
+python3 game/plots/points_violin.py --agent-0 random --agent-1 sb3_league
+
+# Heatmap de win rate
+python3 game/plots/matchup_heatmap.py --metric win_rate --agents "random,rational,q_learning,sb3_league"
+
+# Heatmap de diferencia de puntos
+python3 game/plots/matchup_heatmap.py --metric avg_diff --agents "random,rational,q_learning,sb3_league"
+
+# Tasas de mentira comparativas
+python3 game/plots/bluff_rate_bars.py --agents "random,rational,q_learning,sb3_league"
+
+# Fuentes de puntos (área apilada)
+python3 game/plots/points_sources_area.py --focal-agent sb3_league --opponents "random,rational,q_learning"
+```
+
+Los gráficos se guardan en `game/plots/images/`.
+
+## Resultados principales
+
+Resultados de 1000 partidas por enfrentamiento (seed 2026):
+
+| Agente         | vs Random | vs Rational | vs Q-Learning | vs PPO |
+| -------------- | --------- | ----------- | ------------- | ------ |
+| **Random**     | —         | 5.1%        | 33.9%         | 6.6%   |
+| **Rational**   | 94.9%     | —           | 30.6%         | 23.8%  |
+| **Q-Learning** | 66.1%     | 69.4%       | —             | 21.8%  |
+| **PPO**        | 93.4%     | 76.2%       | 78.2%         | —      |
+
+El agente PPO (Exp. 3, liga 20/60/20) es el claro ganador, dominando todos los enfrentamientos.
 
 ## Notas
 
 - Las reglas actuales implementan un set 1v1 sin flor.
+- Q-Table de referencia: `exp2_vs_rational_789987.pkl` → copiar como `q_table.pkl` para uso por defecto.
+- Modelo PPO de referencia: `ppo_truco_league_20_60_20.zip` → copiar como `ppo_truco_league.zip` para uso por defecto.

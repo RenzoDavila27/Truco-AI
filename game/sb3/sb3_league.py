@@ -50,9 +50,9 @@ class SnapshotAgent:
 
 @dataclass
 class LeaguePool:
-    self_play_weight: float = 0.40
-    heuristic_weight: float = 0.60
-    snapshot_weight: float = 0.0
+    self_play_weight: float = 0.5
+    heuristic_weight: float = 0
+    snapshot_weight: float = 0.5
     self_play_agent: SelfPlayAgent = field(default_factory=SelfPlayAgent)
     heuristics: list = field(default_factory=lambda: [RandomAgent(), RationalAgent()])
     snapshots: list[SnapshotAgent] = field(default_factory=list)
@@ -65,7 +65,10 @@ class LeaguePool:
             return random.choice(self.heuristics)
         if self.snapshots:
             return random.choice(self.snapshots)
-        return random.choice(self.heuristics)
+        if self.heuristic_weight > 0:
+            return random.choice(self.heuristics)
+        else:
+            return self.self_play_agent
 
     def add_snapshot(self, path: str):
         self.snapshots.append(SnapshotAgent(path))
