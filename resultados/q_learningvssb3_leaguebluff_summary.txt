@@ -1,0 +1,28 @@
+Agente J0: q_learning
+Agente J1: sb3_league
+Partidas: 1000
+Llamados Truco totales: 20245
+Llamados Envido totales: 6751
+Aceptados: 13415
+Rechazados: 4679
+Subidas: 7703
+
+Agente q_learning:
+Llamados Truco: 7886
+Llamados con mano mas debil: 3755
+Tasa de mentira: 0.48
+Manos ganadas tras cantar: 3599
+Tasa de exito en cantos: 0.46
+Llamados Envido: 3561
+Llamados Envido con tanto menor: 2001
+Tasa de mentira Envido: 0.56
+
+Agente sb3_league:
+Llamados Truco: 12359
+Llamados con mano mas debil: 4976
+Tasa de mentira: 0.40
+Manos ganadas tras cantar: 8156
+Tasa de exito en cantos: 0.66
+Llamados Envido: 3190
+Llamados Envido con tanto menor: 1809
+Tasa de mentira Envido: 0.57

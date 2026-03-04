@@ -1,4 +1,4 @@
-from constantes import Acciones
+from constantes import Acciones, ESTADO_RETRUCO, ESTADO_VALE_CUATRO
 
 
 class RationalAgent:
@@ -14,10 +14,31 @@ class RationalAgent:
         is_mano = estado.es_mano if player_id == 0 else not estado.es_mano
 
         if estado.turno_responder_truco:
+            cartas_fuertes = self._contar_cartas_fuertes(env, player_id)
+            gano_una = self._ya_gano_una_ronda(estado, player_id)
+            condicion_retruco = cartas_fuertes >= 1 and gano_una
+            condicion_vale_cuatro = cartas_fuertes >= 2 and gano_una
+
+            if action_mask[Acciones.VALE_CUATRO.value] and condicion_vale_cuatro:
+                return Acciones.VALE_CUATRO.value
+            if action_mask[Acciones.RETRUCO.value] and condicion_retruco:
+                return Acciones.RETRUCO.value
+
             if self._todas_cartas_debiles(env, player_id):
                 if action_mask[Acciones.NO_QUIERO.value]:
                     return Acciones.NO_QUIERO.value
+
             if action_mask[Acciones.QUIERO.value]:
+                aceptar_retruco = condicion_retruco or cartas_fuertes >= 2
+                aceptar_vale_cuatro = condicion_vale_cuatro or (
+                    self._promedio_ranking_mano(env, player_id) <= 6
+                )
+                if estado.estado_canto_truco == ESTADO_RETRUCO and not aceptar_retruco:
+                    if action_mask[Acciones.NO_QUIERO.value]:
+                        return Acciones.NO_QUIERO.value
+                if estado.estado_canto_truco == ESTADO_VALE_CUATRO and not aceptar_vale_cuatro:
+                    if action_mask[Acciones.NO_QUIERO.value]:
+                        return Acciones.NO_QUIERO.value
                 return Acciones.QUIERO.value
 
         if estado.turno_responder_envido:
@@ -37,11 +58,16 @@ class RationalAgent:
             if envido_points > 27 and action_mask[Acciones.ENVIDO.value]:
                 return Acciones.ENVIDO.value
 
-        if (
-            action_mask[Acciones.TRUCO.value]
-            and self._ya_gano_una_ronda(estado, player_id)
-            and self._tiene_cartas_poderosas(env, player_id)
-        ):
+        cartas_fuertes = self._contar_cartas_fuertes(env, player_id)
+        gano_una = self._ya_gano_una_ronda(estado, player_id)
+        condicion_retruco = cartas_fuertes >= 1 and gano_una
+        condicion_vale_cuatro = cartas_fuertes >= 2 and gano_una
+
+        if action_mask[Acciones.VALE_CUATRO.value] and condicion_vale_cuatro:
+            return Acciones.VALE_CUATRO.value
+        if action_mask[Acciones.RETRUCO.value] and condicion_retruco:
+            return Acciones.RETRUCO.value
+        if action_mask[Acciones.TRUCO.value] and condicion_retruco:
             return Acciones.TRUCO.value
 
         card_action = self._elegir_carta(action_mask, env, player_id)
@@ -123,6 +149,18 @@ class RationalAgent:
         if not mano:
             return False
         return any(env.logic.obtener_ranking(carta) <= 2 for carta in mano)
+
+    def _contar_cartas_fuertes(self, env, player_id):
+        estado = env.logic.estado
+        mano = estado.mano_jugador if player_id == 0 else estado.mano_oponente
+        return sum(1 for carta in mano if env.logic.obtener_ranking(carta) <= 5)
+
+    def _promedio_ranking_mano(self, env, player_id):
+        estado = env.logic.estado
+        mano = estado.mano_jugador if player_id == 0 else estado.mano_oponente
+        if not mano:
+            return 99
+        return sum(env.logic.obtener_ranking(carta) for carta in mano) / len(mano)
 
     def _todas_cartas_debiles(self, env, player_id):
         estado = env.logic.estado

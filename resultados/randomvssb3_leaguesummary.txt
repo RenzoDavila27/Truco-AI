@@ -1,0 +1,13 @@
+Agente J0: random
+Agente J1: sb3_league
+Q-table J0: N/A
+Q-table J1: N/A
+Partidas: 1000
+Victorias J0: 66
+Victorias J1: 934
+Empates: 0
+Promedio puntos J0: 11.53
+Promedio puntos J1: 28.73
+Promedio manos jugadas: 11.21
+Promedio manos ganadas J0: 1.22
+Promedio manos ganadas J1: 9.98

@@ -1,28 +1,28 @@
 Agente J0: random
 Agente J1: rational
 Partidas: 1000
-Llamados Truco totales: 4942
-Llamados Envido totales: 6350
-Aceptados: 5427
-Rechazados: 4951
-Subidas: 914
+Llamados Truco totales: 6611
+Llamados Envido totales: 6269
+Aceptados: 6089
+Rechazados: 5411
+Subidas: 1380
 
 Agente random:
-Llamados Truco: 4605
-Llamados con mano mas debil: 2073
+Llamados Truco: 4908
+Llamados con mano mas debil: 2224
 Tasa de mentira: 0.45
-Manos ganadas tras cantar: 1703
-Tasa de exito en cantos: 0.37
-Llamados Envido: 4842
-Llamados Envido con tanto menor: 3085
+Manos ganadas tras cantar: 1898
+Tasa de exito en cantos: 0.39
+Llamados Envido: 4748
+Llamados Envido con tanto menor: 3021
 Tasa de mentira Envido: 0.64
 
 Agente rational:
-Llamados Truco: 337
-Llamados con mano mas debil: 40
-Tasa de mentira: 0.12
-Manos ganadas tras cantar: 335
-Tasa de exito en cantos: 0.99
-Llamados Envido: 1508
+Llamados Truco: 1703
+Llamados con mano mas debil: 336
+Tasa de mentira: 0.20
+Manos ganadas tras cantar: 1622
+Tasa de exito en cantos: 0.95
+Llamados Envido: 1521
 Llamados Envido con tanto menor: 0
 Tasa de mentira Envido: 0.00

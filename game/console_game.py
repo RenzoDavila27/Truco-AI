@@ -1,4 +1,5 @@
 import argparse
+import random
 import numpy as np
 from constantes import Acciones
 from truco_env import TrucoEnv
@@ -44,7 +45,14 @@ def _format_cartas_jugadas(cartas_jugadas):
 
 def main(human_player, mode, agent_name):
     env = TrucoEnv()
-    agent = create_agent(agent_name)
+    if agent_name == "sb3_league":
+        agent = create_agent(agent_name, verbose=True)
+    else:
+        agent = create_agent(agent_name)
+
+    # Ensure fresh randomness even if SB3 load set a fixed seed.
+    random.seed()
+    np.random.seed(None)
 
     env.reset()
     done = False

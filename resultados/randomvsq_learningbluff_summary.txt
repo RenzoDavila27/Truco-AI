@@ -1,28 +1,28 @@
 Agente J0: random
 Agente J1: q_learning
 Partidas: 1000
-Llamados Truco totales: 11556
-Llamados Envido totales: 12440
-Aceptados: 6215
-Rechazados: 11764
-Subidas: 5295
+Llamados Truco totales: 7121
+Llamados Envido totales: 6822
+Aceptados: 3850
+Rechazados: 4395
+Subidas: 4976
 
 Agente random:
-Llamados Truco: 6822
-Llamados con mano mas debil: 3260
-Tasa de mentira: 0.48
-Manos ganadas tras cantar: 3803
-Tasa de exito en cantos: 0.56
-Llamados Envido: 7151
-Llamados Envido con tanto menor: 4401
+Llamados Truco: 3379
+Llamados con mano mas debil: 1514
+Tasa de mentira: 0.45
+Manos ganadas tras cantar: 1049
+Tasa de exito en cantos: 0.31
+Llamados Envido: 3610
+Llamados Envido con tanto menor: 2240
 Tasa de mentira Envido: 0.62
 
 Agente q_learning:
-Llamados Truco: 4734
-Llamados con mano mas debil: 1544
-Tasa de mentira: 0.33
-Manos ganadas tras cantar: 3891
-Tasa de exito en cantos: 0.82
-Llamados Envido: 5289
-Llamados Envido con tanto menor: 2953
-Tasa de mentira Envido: 0.56
+Llamados Truco: 3742
+Llamados con mano mas debil: 1495
+Tasa de mentira: 0.40
+Manos ganadas tras cantar: 3330
+Tasa de exito en cantos: 0.89
+Llamados Envido: 3212
+Llamados Envido con tanto menor: 1874
+Tasa de mentira Envido: 0.58

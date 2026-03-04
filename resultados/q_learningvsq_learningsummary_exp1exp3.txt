@@ -1,0 +1,13 @@
+Agente J0: q_learning
+Agente J1: q_learning
+Q-table J0: game/agents/RL-Agents/q_tables/exp1_selfplay_2026.pkl
+Q-table J1: game/agents/RL-Agents/q_tables/exp3_mix_rational_2026.pkl
+Partidas: 1000
+Victorias J0: 649
+Victorias J1: 351
+Empates: 0
+Promedio puntos J0: 27.07
+Promedio puntos J1: 24.59
+Promedio manos jugadas: 21.91
+Promedio manos ganadas J0: 10.82
+Promedio manos ganadas J1: 11.09

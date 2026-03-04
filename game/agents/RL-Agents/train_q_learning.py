@@ -4,6 +4,7 @@ import os
 import pickle
 import sys
 import random
+import numpy as np
 
 GAME_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if GAME_DIR not in sys.path:
@@ -14,19 +15,31 @@ from constantes import Acciones
 from agent_q_learning import QLearningAgent
 
 
-QTABLE_PATH = os.path.join(os.path.dirname(__file__), "q_tables", "q_table.pkl")
+QTABLE_DIR = os.path.join(os.path.dirname(__file__), "q_tables")
+DEFAULT_QTABLE_NAME = "q_table.pkl"
 
 
-def _load_q_table():
-    if not os.path.exists(QTABLE_PATH):
+def _resolve_qtable_path(name):
+    if not name:
+        name = DEFAULT_QTABLE_NAME
+    root, ext = os.path.splitext(name)
+    if not ext:
+        name = f"{name}.pkl"
+    if os.path.isabs(name) or os.sep in name or "/" in name:
+        return name
+    return os.path.join(QTABLE_DIR, name)
+
+
+def _load_q_table(path):
+    if not os.path.exists(path):
         return {}
-    with open(QTABLE_PATH, "rb") as f:
+    with open(path, "rb") as f:
         return pickle.load(f)
 
 
-def _save_q_table(q_table):
-    os.makedirs(os.path.dirname(QTABLE_PATH), exist_ok=True)
-    with open(QTABLE_PATH, "wb") as f:
+def _save_q_table(q_table, path):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "wb") as f:
         pickle.dump(q_table, f)
 
 
@@ -72,13 +85,35 @@ def _update_hand(q_table, hand_steps, final_reward, alpha, gamma):
         G *= gamma
 
 
-def train(episodes, alpha, gamma, epsilon):
+def _checkpoint_episodes(episodes, checkpoints):
+    if checkpoints <= 0 or episodes <= 0:
+        return set()
+    checkpoints = min(checkpoints, max(0, episodes - 1))
+    return {max(1, (i * episodes) // (checkpoints + 1)) for i in range(1, checkpoints + 1)}
+
+
+def _seed_everything(seed):
+    if seed is None:
+        return
+    random.seed(seed)
+    np.random.seed(seed)
+
+
+def train(episodes, alpha, gamma, epsilon, q_table_name, checkpoints, seed):
     env = TrucoEnv()
-    agent = QLearningAgent(q_table_path=QTABLE_PATH)
+    if q_table_name == DEFAULT_QTABLE_NAME and seed is not None:
+        q_table_name = f"q_table_{seed}.pkl"
+    q_table_path = _resolve_qtable_path(q_table_name)
+    agent = QLearningAgent(q_table_path=q_table_path)
+    checkpoint_set = _checkpoint_episodes(episodes, checkpoints)
+    _seed_everything(seed)
 
     try:
         for episode_idx in range(episodes):
-            env.reset()
+            if seed is not None:
+                random.seed(seed + episode_idx)
+                np.random.seed(seed + episode_idx)
+            env.reset(seed=None if seed is None else seed + episode_idx)
             done = False
             hand_steps = []
             prev_es_mano = env.logic.estado.es_mano
@@ -136,10 +171,13 @@ def train(episodes, alpha, gamma, epsilon):
                 print(
                     f"Episodio {t}/{episodes} | epsilon={current_epsilon:.4f} | Q-size={len(agent.q_table)}"
                 )
+            if t in checkpoint_set:
+                checkpoint_path = _resolve_qtable_path(f"{os.path.splitext(os.path.basename(q_table_path))[0]}_ep{t}")
+                _save_q_table(agent.q_table, checkpoint_path)
     except KeyboardInterrupt:
         pass
     finally:
-        _save_q_table(agent.q_table)
+        _save_q_table(agent.q_table, q_table_path)
 
 
 if __name__ == "__main__":
@@ -148,6 +186,32 @@ if __name__ == "__main__":
     parser.add_argument("--alpha", type=float, default=0.1, help="Learning rate.")
     parser.add_argument("--gamma", type=float, default=1, help="Discount factor.")
     parser.add_argument("--epsilon", type=float, default=0.5, help="Epsilon para exploracion.")
+    parser.add_argument(
+        "--q-table-name",
+        type=str,
+        default=DEFAULT_QTABLE_NAME,
+        help="Nombre o ruta de la Q-table (por defecto q_table.pkl).",
+    )
+    parser.add_argument(
+        "--checkpoints",
+        type=int,
+        default=0,
+        help="Cantidad de Q-tables intermedias a guardar.",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Seed para entrenamiento reproducible.",
+    )
     args = parser.parse_args()
 
-    train(args.episodes, args.alpha, args.gamma, args.epsilon)
+    train(
+        args.episodes,
+        args.alpha,
+        args.gamma,
+        args.epsilon,
+        args.q_table_name,
+        args.checkpoints,
+        args.seed,
+    )

@@ -1,10 +1,32 @@
 import argparse
 import csv
 import os
+import random
+
+import numpy as np
 
 from constantes import Acciones
 from truco_env import TrucoEnv
 from agents.registry import create_agent, get_agent_registry
+
+DEFAULT_QTABLE_NAME = "q_table.pkl"
+RL_QTABLE_DIR = os.path.join(
+    os.path.dirname(__file__),
+    "agents",
+    "RL-Agents",
+    "q_tables",
+)
+
+
+def _resolve_qtable_path(name):
+    if not name:
+        name = DEFAULT_QTABLE_NAME
+    root, ext = os.path.splitext(name)
+    if not ext:
+        name = f"{name}.pkl"
+    if os.path.isabs(name) or os.sep in name or "/" in name:
+        return name
+    return os.path.join(RL_QTABLE_DIR, name)
 
 
 def _format_hand(hand):
@@ -107,8 +129,11 @@ def _resolve_envido_events(events, active_indices, points_j0, points_j1):
         )
 
 
-def _play_game(env, agent_0, agent_1, agent_0_name, agent_1_name, game_id):
-    env.reset()
+def _play_game(env, agent_0, agent_1, agent_0_name, agent_1_name, game_id, seed=None):
+    if seed is not None:
+        random.seed(seed)
+        np.random.seed(seed)
+    env.reset(seed=seed)
     done = False
 
     hand_index = 1
@@ -387,22 +412,38 @@ def _play_game(env, agent_0, agent_1, agent_0_name, agent_1_name, game_id):
     return events
 
 
-def main(agent_0, agent_1, games, output_name=None, summary_name=None):
+def main(agent_0, agent_1, games, output_name=None, summary_name=None,
+         q_table_j0=None, q_table_j1=None, model_j0=None, model_j1=None,
+         agent_0_label=None, agent_1_label=None, seed=None):
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     results_dir = os.path.join(project_root, "resultados")
     os.makedirs(results_dir, exist_ok=True)
 
+    a0_label = agent_0_label or agent_0
+    a1_label = agent_1_label or agent_1
+
     if output_name is None:
-        output_name = f"{agent_0}vs{agent_1}bluff_results.csv"
+        output_name = f"{a0_label}vs{a1_label}bluff_results.csv"
     if summary_name is None:
-        summary_name = f"{agent_0}vs{agent_1}bluff_summary.txt"
+        summary_name = f"{a0_label}vs{a1_label}bluff_summary.txt"
 
     output_path = os.path.join(results_dir, os.path.basename(output_name))
     summary_path = os.path.join(results_dir, os.path.basename(summary_name))
 
     env = TrucoEnv()
-    agent_0_inst = create_agent(agent_0)
-    agent_1_inst = create_agent(agent_1)
+
+    def _create(name, q_path, m_path):
+        kwargs = {}
+        if name == "q_learning" and q_path:
+            kwargs["q_table_path"] = _resolve_qtable_path(q_path)
+        if name in ("sb3", "sb3_league") and m_path:
+            kwargs["model_path"] = m_path
+        if kwargs:
+            return create_agent(name, **kwargs)
+        return create_agent(name)
+
+    agent_0_inst = _create(agent_0, q_table_j0, model_j0)
+    agent_1_inst = _create(agent_1, q_table_j1, model_j1)
 
     fieldnames = [
         "game",
@@ -466,6 +507,7 @@ def main(agent_0, agent_1, games, output_name=None, summary_name=None):
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         for game_id in range(1, games + 1):
+            game_seed = None if seed is None else seed + game_id
             events = _play_game(
                 env,
                 agent_0_inst,
@@ -473,6 +515,7 @@ def main(agent_0, agent_1, games, output_name=None, summary_name=None):
                 agent_0,
                 agent_1,
                 game_id,
+                seed=game_seed,
             )
             for event in events:
                 writer.writerow({k: event.get(k, "") for k in fieldnames})
@@ -560,6 +603,33 @@ if __name__ == "__main__":
         default=None,
         help="Nombre del archivo de resumen.",
     )
+    parser.add_argument(
+        "--q-table-j0",
+        default=None,
+        help="Nombre o ruta de la Q-table para J0 (si es q_learning).",
+    )
+    parser.add_argument(
+        "--q-table-j1",
+        default=None,
+        help="Nombre o ruta de la Q-table para J1 (si es q_learning).",
+    )
+    parser.add_argument(
+        "--model-j0",
+        default=None,
+        help="Ruta al modelo .zip para J0 (si es sb3 o sb3_league).",
+    )
+    parser.add_argument(
+        "--model-j1",
+        default=None,
+        help="Ruta al modelo .zip para J1 (si es sb3 o sb3_league).",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Seed para simulaciones reproducibles.",
+    )
     args = parser.parse_args()
 
-    main(args.agent_0, args.agent_1, args.games, args.output_csv, args.output_summary)
+    main(args.agent_0, args.agent_1, args.games, args.output_csv, args.output_summary,
+         args.q_table_j0, args.q_table_j1, args.model_j0, args.model_j1, seed=args.seed)
