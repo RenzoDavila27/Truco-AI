@@ -1,4 +1,4 @@
-﻿# Proyecto Final — Inteligencia Artificial 1
+# Proyecto Final — Inteligencia Artificial 1
 
 **Título:** Truco-AI: Agentes inteligentes para Truco Argentino (1v1, sin flor)  
 **Autores:** Ramiro Martinez, Renzo Dávila  
@@ -891,7 +891,7 @@ El agente Racional cumple un rol importante como referencia intermedia: domina a
 
 ### 4.3 Agente Q-Learning
 
-El agente Q-Learning representa el primer enfoque de aprendizaje por refuerzo implementado, utilizando una tabla de valores Q con discretización del espacio de estados. Su entrenamiento combinó 20 millones de partidas en self-play seguidas de 1 millón contra el agente Racional.
+El agente Q-Learning representa el primer enfoque de aprendizaje por refuerzo implementado, utilizando una tabla de valores Q con discretización del espacio de estados. Su entrenamiento consistió en 5 millones de partidas exclusivamente contra el agente Racional (Experimento 2, sección 3.6.1.3), seleccionado por presentar el perfil más equilibrado frente a distintos estilos de juego.
 
 #### Win rate
 
@@ -907,7 +907,7 @@ Q-Learning presenta tasas de mentira del 24–48% en Truco y 55–58% en Envido,
 
 #### Conclusión
 
-El agente Q-Learning demuestra que incluso con la limitación de una tabla Q discreta, el aprendizaje por refuerzo puede descubrir estrategias efectivas contra oponentes determinísticos. Su victoria contundente sobre Rational (69.4%) valida el enfoque de entrenamiento mixto. Sin embargo, la caída abrupta contra PPO (21.8%) expone las limitaciones de la discretización del espacio de estados: frente a un oponente con capacidad de generalización a través de una red neuronal, la tabla Q no logra capturar los matices necesarios para competir. Su estrategia enfocada en el envido resulta efectiva para cerrar partidas rápidamente pero insuficiente contra un oponente que maneja todas las mecánicas del juego de forma más equilibrada.
+El agente Q-Learning demuestra que incluso con la limitación de una tabla Q discreta, el aprendizaje por refuerzo puede descubrir estrategias efectivas contra oponentes determinísticos. Su victoria contundente sobre Rational (69.4%) valida el enfoque de entrenamiento exclusivo contra el agente racional. Sin embargo, la caída abrupta contra PPO (21.8%) expone las limitaciones de la discretización del espacio de estados: frente a un oponente con capacidad de generalización a través de una red neuronal, la tabla Q no logra capturar los matices necesarios para competir. Su estrategia enfocada en el envido resulta efectiva para cerrar partidas rápidamente pero insuficiente contra un oponente que maneja todas las mecánicas del juego de forma más equilibrada.
 
 ### 4.4 Agente PPO
 
