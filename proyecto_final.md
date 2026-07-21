@@ -541,6 +541,8 @@ Los snapshots se generan automáticamente cada 200,000 timesteps y se agregan a 
 
 En esta sección se presentan los experimentos realizados para evaluar el efecto de las distintas estrategias de entrenamiento sobre el desempeño de cada agente. El objetivo es seleccionar, para cada algoritmo, la configuración de entrenamiento que produce la política más competitiva.
 
+**Aclaración sobre los experimentos.** Cada configuración de entrenamiento se ejecutó una sola vez. La única excepción es el Experimento 2 de Q-Learning (sección 3.6.1.1), que se repitió con dos semillas distintas para verificar reproducibilidad. Los hiperparámetros de cada algoritmo se fijaron de antemano basándose en valores por defecto de la librería Stable-Baselines3, sin realizar una búsqueda sistemática de hiperparámetros. La evaluación durante el entrenamiento se realizó mediante snapshots periódicos del modelo, evaluados en enfrentamientos contra los agentes heurísticos (aleatorio y racional). El modelo final seleccionado para cada agente corresponde a la política obtenida al completar el entrenamiento. Esta decisión de diseño implica una limitación: al no disponer de múltiples ejecuciones con distintas semillas para cada configuración, no es posible separar completamente el efecto de la estrategia de entrenamiento del efecto de la aleatoriedad. Por eso, los resultados obtenidos muestran tendencias generales y aplican para las condiciones en las que se hizo cada experimento.
+
 #### 3.6.1 Selección y ajuste de agente Q-Learning
 
 ##### 3.6.1.1 Experimentos de convergencia
@@ -625,13 +627,13 @@ Figura: Win rate del agente mixto evaluado contra el agente racional. Se observa
 
 A pesar de su pésima convergencia contra el agente racional, el agente del Experimento 1 obtiene una ventaja en los enfrentamientos directos. Esto se debe a que su política, forjada exclusivamente en self-play, desarrolla un repertorio estratégico más impredecible que incluye el uso frecuente de la mentira como herramienta ofensiva. En contraste, los agentes de los Experimentos 2 y 3, al haber sido parcial o totalmente entrenados contra el agente racional (que nunca miente), tienden a adoptar políticas más conservadoras y predecibles a la hora de responder, lo que los hace vulnerables ante un oponente con mayor variabilidad estratégica.
 
-No obstante, la selección del agente final no debe basarse exclusivamente en el desempeño entre políticas Q-Learning, sino en la capacidad de generalización frente a distintos estilos de juego. En este sentido, el agente del Experimento 2 (racional) presenta el perfil más equilibrado: alcanza un 70% de win rate contra el agente aleatorio, contra el racional, y con una minima desventaja contra politicas con mayor variabilidad estrategica. Por esta razón, se selecciona la Q-table del Experimento 2 como la política Q-Learning definitiva para las evaluaciones globales.
+No obstante, la selección del agente final no debe basarse exclusivamente en el desempeño entre políticas Q-Learning, sino en la capacidad de generalización frente a distintos estilos de juego. En este sentido, el agente del Experimento 2 (racional) presenta el perfil más equilibrado: alcanza un 70% de win rate contra el agente aleatorio, contra el racional, y con una minima desventaja contra politicas con mayor variabilidad estrategica. Dado que ambas semillas del Experimento 2 producen políticas estadísticamente equivalentes (499-501 en enfrentamiento directo), se selecciona la Q-table de la semilla 789987 como la política Q-Learning definitiva para las evaluaciones globales.
 
 #### 3.6.2 Selección y ajuste de agente PPO
 
 ##### 3.6.2.1 Experimentos de convergencia
 
-Se diseñaron tres experimentos para evaluar cómo la composición de la liga de oponentes (sección 2.4) influye en la calidad de la política aprendida por el agente PPO. Todos los experimentos utilizaron los mismos hiperparámetros descritos en la sección 3.5.3 y un total de 20,000,000 de timesteps, con snapshots generados cada 200,000 timesteps. La única variable entre los experimentos fue la distribución de probabilidades de selección de oponentes en la liga.
+Se diseñaron tres experimentos para evaluar cómo la composición de la liga de oponentes (sección 2.4) influye en la calidad de la política aprendida por el agente PPO. Todos los experimentos utilizaron los mismos hiperparámetros descritos en la sección 3.5.3 y un total de 20,000,000 de timesteps, con snapshots generados cada 200,000 timesteps. La única variable entre los experimentos fue la distribución de probabilidades de selección de oponentes en la liga. Cada configuración se entrenó una sola vez, sin fijar una semilla explícita para el generador de números aleatorios, por lo que la inicialización de los pesos de la red y la secuencia de episodios dependieron del estado aleatorio del sistema. El modelo final seleccionado para cada experimento corresponde a la política obtenida al completar los 20M timesteps de entrenamiento.
 
 **Experimento 1: Self-play puro con snapshots.** La liga se compone exclusivamente de self-play y versiones anteriores del modelo, sin oponentes heurísticos. El objetivo es evaluar si el agente es capaz de desarrollar una política competitiva a partir únicamente de su propia experiencia, maximizando la co-evolución entre la política actual y sus versiones pasadas.
 
@@ -737,7 +739,7 @@ No obstante, la selección del agente final debe priorizar la capacidad de gener
 
 #### 3.7.1 Resultados por agente
 
-Para evaluar el desempeño final de los agentes desarrollados, se realizaron enfrentamientos de 1000 partidas entre cada par de agentes. A continuación se presentan los resultados organizados por agente evaluado.
+Para evaluar el desempeño final de los agentes desarrollados, se realizaron enfrentamientos de 1000 partidas entre cada par de agentes. Los modelos utilizados corresponden a las políticas finales seleccionadas en las secciones de experimentos internos: para Q-Learning, la Q-table del Experimento 2 con semilla 789987 (sección 3.6.1.3); para PPO, la política del Experimento 3 con distribución de liga 20/60/20 (sección 3.6.2.3). A continuación se presentan los resultados organizados por agente evaluado.
 
 ##### Agente Random
 
@@ -759,7 +761,7 @@ El agente racional implementa heurísticas diseñadas manualmente basadas en reg
 
 ##### Agente Q-Learning
 
-El agente entrenado mediante Monte Carlo Q-Learning en self-play y contra el agente racional.
+Política Q-Learning del Experimento 2 (sección 3.6.1.3), entrenada durante 5 millones de partidas exclusivamente contra el agente racional con semilla 789987.
 
 | Oponente | Win Rate | Puntos Prom. | Manos Jugadas | Manos Ganadas | % Mentiras Truco | % Mentiras Envido |
 | -------- | -------- | ------------ | ------------- | ------------- | ---------------- | ----------------- |
@@ -769,7 +771,7 @@ El agente entrenado mediante Monte Carlo Q-Learning en self-play y contra el age
 
 ##### Agente PPO
 
-El agente entrenado mediante Proximal Policy Optimization con action masking.
+Política PPO del Experimento 3 (sección 3.6.2.3), entrenada durante 20 millones de timesteps con liga de oponentes en distribución 20/60/20 (self-play, heurísticos, snapshots).
 
 | Oponente   | Win Rate | Puntos Prom. | Manos Jugadas | Manos Ganadas | % Mentiras Truco | % Mentiras Envido |
 | ---------- | -------- | ------------ | ------------- | ------------- | ---------------- | ----------------- |
