@@ -543,6 +543,8 @@ En esta sección se presentan los experimentos realizados para evaluar el efecto
 
 **Aclaración sobre los experimentos.** Cada configuración de entrenamiento se ejecutó una sola vez. La única excepción es el Experimento 2 de Q-Learning (sección 3.6.1.1), que se repitió con dos semillas distintas para verificar reproducibilidad. Los hiperparámetros de cada algoritmo se fijaron de antemano basándose en valores por defecto de la librería Stable-Baselines3, sin realizar una búsqueda sistemática de hiperparámetros. La evaluación durante el entrenamiento se realizó mediante snapshots periódicos del modelo, evaluados en enfrentamientos contra los agentes heurísticos (aleatorio y racional). El modelo final seleccionado para cada agente corresponde a la política obtenida al completar el entrenamiento. Esta decisión de diseño implica una limitación: al no disponer de múltiples ejecuciones con distintas semillas para cada configuración, no es posible separar completamente el efecto de la estrategia de entrenamiento del efecto de la aleatoriedad. Por eso, los resultados obtenidos muestran tendencias generales y aplican para las condiciones en las que se hizo cada experimento.
 
+**Nota sobre intervalos de confianza.** Para cuantificar la incertidumbre de las estimaciones, se reportan intervalos de confianza al 95%. Para los win rates se utiliza el intervalo de Wilson, más adecuado que el intervalo normal cuando las proporciones están cerca de 0 o 1. Para las métricas continuas (puntos promedio, manos jugadas, manos ganadas) se reporta media ± 1.96 × error estándar. Dado que cada partida constituye un ensayo independiente, estos intervalos reflejan la variabilidad muestral de la estimación.
+
 #### 3.6.1 Selección y ajuste de agente Q-Learning
 
 ##### 3.6.1.1 Experimentos de convergencia
@@ -613,7 +615,7 @@ Figura: Win rate del agente mixto evaluado contra el agente racional. Se observa
 
 **Experimento 1: Self-play puro.** El agente entrenado mediante self-play exhibe una convergencia marcadamente asimétrica frente a los dos oponentes heurísticos. Contra el agente aleatorio alcanza un win rate aproximado del 80%, lo cual se explica por la naturaleza del proceso de entrenamiento: durante las primeras iteraciones, cuando la Q-table aún no contiene información significativa, la política del agente es esencialmente aleatoria debido a la alta tasa de exploración (ε₀=0.5). En consecuencia, el self-play inicial equivale en la práctica a jugar contra un oponente aleatorio, lo que permite al agente aprender rápidamente a explotar las debilidades de este estilo de juego. Sin embargo, contra el agente racional el rendimiento es considerablemente inferior, alcanzando apenas un 20% de win rate en sus puntos más altos. Este resultado evidencia la limitación fundamental del self-play puro: al nunca enfrentarse a un oponente con estrategia estructurada, el agente no desarrolla la capacidad de responder ante un estilo de juego conservador y basado en reglas, radicalmente distinto al que experimenta durante su entrenamiento.
 
-**Experimento 2: Entrenamiento contra agente racional.** Ambos agentes, entrenados con semillas distintas, exhiben trayectorias de convergencia similares: alcanzan aproximadamente un 70% de win rate tanto contra el agente aleatorio como contra el agente racional. A diferencia del self-play puro, el entrenamiento exclusivo contra un oponente racional produce un agente más equilibrado, capaz de competir razonablemente contra ambos estilos de juego. La equivalencia entre las dos políticas resultantes se confirma en el enfrentamiento directo entre ambos agentes (sección 3.6.1.2), donde el resultado de 499-501 en 1000 partidas indica que las diferencias entre ambas semillas son estadísticamente insignificantes.
+**Experimento 2: Entrenamiento contra agente racional.** Ambos agentes, entrenados con semillas distintas, exhiben trayectorias de convergencia similares: alcanzan aproximadamente un 70% de win rate tanto contra el agente aleatorio como contra el agente racional. A diferencia del self-play puro, el entrenamiento exclusivo contra un oponente racional produce un agente más equilibrado, capaz de competir razonablemente contra ambos estilos de juego. La equivalencia entre las dos políticas resultantes se confirma en el enfrentamiento directo entre ambos agentes (sección 3.6.1.2), donde el resultado de 499-501 en 1000 partidas (IC95% Wilson: [46.8%, 53.0%]) indica que la diferencia entre ambas semillas es compatible con el azar, ya que el intervalo contiene el 50%.
 
 **Experimento 3: Entrenamiento mixto.** El win rate contra el agente aleatorio se mantiene estable en torno al 80% durante todo el entrenamiento, tanto en la fase de self-play como en la fase posterior contra el agente racional. Esto se explica por dos factores complementarios: durante el self-play, el agente aprende a explotar las estrategias agresivas e impredecibles propias de un oponente aleatorio, y al transicionar al entrenamiento contra el racional, este rendimiento no se deteriora, ya que un agente capaz de derrotar consistentemente a un oponente basado en reglas fijas conserva naturalmente su ventaja sobre un oponente sin estrategia. Contra el agente racional, en cambio, se observa una transición marcada: durante los primeros 3 millones de episodios en self-play, el rendimiento se mantiene en aproximadamente un 20% de win rate, consistente con lo observado en el Experimento 1. Sin embargo, al iniciar la segunda fase de entrenamiento contra el racional, el win rate escala rápidamente hasta alcanzar un 70% en apenas 500,000 episodios adicionales. Esta convergencia acelerada se atribuye al fenómeno de transferencia de conocimiento: la fase de self-play no solo enseña al agente a jugar contra sí mismo, sino que le permite construir una representación rica del espacio estado-acción del juego, aprendiendo la mecánica de las rondas, el valor relativo de las cartas, y la dinámica de las apuestas. Al enfrentarse posteriormente al agente racional, el agente no parte de cero; ya posee un conocimiento general del juego que solo necesita ser ajustado para responder a los patrones específicos de un oponente determinístico y predecible.
 
@@ -621,13 +623,15 @@ Figura: Win rate del agente mixto evaluado contra el agente racional. Se observa
 
 | Win rate (fila vs columna) | Exp. 1 (self-play) | Exp. 2 (vs racional) | Exp. 3 (mixto) |
 | -------------------------- | ------------------ | -------------------- | -------------- |
-| **Exp. 1 (self-play)**     | —                  | 53.6%                | 64.9%          |
-| **Exp. 2 (vs racional)**   | 46.4%              | —                    | 53.7%          |
-| **Exp. 3 (mixto)**         | 35.1%              | 46.3%                | —              |
+| **Exp. 1 (self-play)**     | —                  | 53.6% [50.5, 56.7]   | 64.9% [61.9, 67.8] |
+| **Exp. 2 (vs racional)**   | 46.4% [43.3, 49.5] | —                   | 53.7% [50.6, 56.8] |
+| **Exp. 3 (mixto)**         | 35.1% [32.2, 38.1] | 46.3% [43.2, 49.4]  | —              |
+
+_Nota: Los valores entre corchetes corresponden al IC95% Wilson (n=1000 partidas por enfrentamiento)._
 
 A pesar de su pésima convergencia contra el agente racional, el agente del Experimento 1 obtiene una ventaja en los enfrentamientos directos. Esto se debe a que su política, forjada exclusivamente en self-play, desarrolla un repertorio estratégico más impredecible que incluye el uso frecuente de la mentira como herramienta ofensiva. En contraste, los agentes de los Experimentos 2 y 3, al haber sido parcial o totalmente entrenados contra el agente racional (que nunca miente), tienden a adoptar políticas más conservadoras y predecibles a la hora de responder, lo que los hace vulnerables ante un oponente con mayor variabilidad estratégica.
 
-No obstante, la selección del agente final no debe basarse exclusivamente en el desempeño entre políticas Q-Learning, sino en la capacidad de generalización frente a distintos estilos de juego. En este sentido, el agente del Experimento 2 (racional) presenta el perfil más equilibrado: alcanza un 70% de win rate contra el agente aleatorio, contra el racional, y con una minima desventaja contra politicas con mayor variabilidad estrategica. Dado que ambas semillas del Experimento 2 producen políticas estadísticamente equivalentes (499-501 en enfrentamiento directo), se selecciona la Q-table de la semilla 789987 como la política Q-Learning definitiva para las evaluaciones globales.
+No obstante, la selección del agente final no debe basarse exclusivamente en el desempeño entre políticas Q-Learning, sino en la capacidad de generalización frente a distintos estilos de juego. En este sentido, el agente del Experimento 2 (racional) presenta el perfil más equilibrado: alcanza un 70% de win rate contra el agente aleatorio, contra el racional, y con una mínima desventaja contra políticas con mayor variabilidad estratégica. Dado que ambas semillas del Experimento 2 producen políticas con desempeño prácticamente idéntico (499-501 en enfrentamiento directo, IC95% Wilson: [46.8%, 53.0%], conteniendo el 50%), se selecciona la Q-table de la semilla 789987 como la política Q-Learning definitiva para las evaluaciones globales.
 
 #### 3.6.2 Selección y ajuste de agente PPO
 
@@ -727,13 +731,15 @@ Para complementar el análisis, se realizaron enfrentamientos directos entre los
 
 | Win rate (fila vs columna)          | Exp. 1 (self-play) | Exp. 2 (equilibrada) | Exp. 3 (heurísticos) |
 | ----------------------------------- | ------------------ | -------------------- | -------------------- |
-| **Exp. 1 (self-play)**              | —                  | 49.1%                | 55.7%                |
-| **Exp. 2 (equilibrada)**            | 50.9%              | —                    | 52.7%                |
-| **Exp. 3 (énfasis en heurísticos)** | 44.3%              | 47.3%                | —                    |
+| **Exp. 1 (self-play)**              | —                  | 49.1% [46.0, 52.2]   | 55.7% [52.6, 58.8]   |
+| **Exp. 2 (equilibrada)**            | 50.9% [47.8, 54.0] | —                    | 52.7% [49.6, 55.8]   |
+| **Exp. 3 (énfasis en heurísticos)** | 44.3% [41.2, 47.4] | 47.3% [44.2, 50.4]  | —                    |
+
+_Nota: Los valores entre corchetes corresponden al IC95% Wilson (n=1000 partidas por enfrentamiento)._
 
 Los enfrentamientos directos revelan un resultado interesante: el Experimento 3, a pesar de dominar ampliamente contra los agentes heurísticos, presenta el peor desempeño en los duelos entre políticas PPO. Esto sugiere que su alta especialización contra oponentes heurísticos lo hace vulnerable frente a estrategias más impredecibles generadas por self-play. El Experimento 2 obtiene el mejor balance en enfrentamientos directos, superando tanto al Exp. 1 como al Exp. 3.
 
-No obstante, la selección del agente final debe priorizar la capacidad de generalización frente a distintos estilos de juego. En este sentido, el Experimento 3 presenta el mejor desempeño global contra los oponentes heurísticos (~93% vs aleatorio, ~73% vs racional), superando a los otros dos experimentos, y las diferencias en los enfrentamientos directos son mínimas. Por esta razón, se selecciona la política del Experimento 3 como el agente PPO definitivo para las evaluaciones globales.
+No obstante, la selección del agente final debe priorizar la capacidad de generalización frente a distintos estilos de juego. En este sentido, el Experimento 3 presenta el mejor desempeño global contra los oponentes heurísticos (~93% vs aleatorio, ~73% vs racional), superando a los otros dos experimentos. En los enfrentamientos directos, los ICs de Exp.1 vs Exp.2 ([46.0%, 52.2%]) y Exp.2 vs Exp.3 ([49.6%, 55.8%]) contienen el 50%, lo que indica que las diferencias no son distinguibles del azar con esta cantidad de partidas. Únicamente el enfrentamiento Exp.1 vs Exp.3 ([52.6%, 58.8%]) sugiere una ventaja leve del Exp.1 en duelos directos. Por esta razón, se selecciona la política del Experimento 3 como el agente PPO definitivo para las evaluaciones globales.
 
 ### 3.7 Resultados globales
 
@@ -745,9 +751,11 @@ Para evaluar el desempeño final de los agentes desarrollados, se realizaron enf
 
 | Oponente   | Win Rate | Puntos Prom. | Manos Jugadas | Manos Ganadas | % Mentiras Truco | % Mentiras Envido |
 | ---------- | -------- | ------------ | ------------- | ------------- | ---------------- | ----------------- |
-| Rational   | 5.1%     | 8.37         | 10.96         | 2.62          | 45%              | 64%               |
-| Q-Learning | 33.9%    | 15.62        | 6.00          | 1.16          | 45%              | 62%               |
-| PPO        | 6.6%     | 11.53        | 11.21         | 1.22          | 49%              | 63%               |
+| Rational   | 5.1% [3.9, 6.6]  | 8.37 ± 0.48  | 10.96 ± 0.43  | 2.62 ± 0.14   | 45%              | 64%               |
+| Q-Learning | 33.9% [31.0, 36.9] | 15.62 ± 0.76 | 6.00 ± 0.30  | 1.16 ± 0.08   | 45%              | 62%               |
+| PPO        | 6.6% [5.2, 8.3]  | 11.53 ± 0.47 | 11.21 ± 0.19  | 1.22 ± 0.07   | 49%              | 63%               |
+
+_Nota: Los intervalos en Win Rate corresponden a IC95% Wilson. Para las demás métricas se reporta media ± 1.96 × error estándar (n=1000)._
 
 ##### Agente Racional
 
@@ -755,9 +763,11 @@ El agente racional implementa heurísticas diseñadas manualmente basadas en reg
 
 | Oponente   | Win Rate | Puntos Prom. | Manos Jugadas | Manos Ganadas | % Mentiras Truco | % Mentiras Envido |
 | ---------- | -------- | ------------ | ------------- | ------------- | ---------------- | ----------------- |
-| Random     | 94.9%    | 28.95        | 10.96         | 8.35          | 20%              | 0%                |
-| Q-Learning | 30.6%    | 23.88        | 25.91         | 12.80         | 21%              | 0%                |
-| PPO        | 23.8%    | 20.12        | 15.73         | 5.56          | 26%              | 0%                |
+| Random     | 94.9% [93.4, 96.1] | 28.95 ± 0.30 | 10.96 ± 0.43  | 8.35 ± 0.33  | 20%              | 0%                |
+| Q-Learning | 30.6% [27.8, 33.5] | 23.88 ± 0.37 | 25.91 ± 0.24  | 12.80 ± 0.23 | 21%              | 0%                |
+| PPO        | 23.8% [21.3, 26.5] | 20.12 ± 0.46 | 15.73 ± 0.31  | 5.56 ± 0.15  | 26%              | 0%                |
+
+_Nota: Los intervalos en Win Rate corresponden a IC95% Wilson. Para las demás métricas se reporta media ± 1.96 × error estándar (n=1000)._
 
 ##### Agente Q-Learning
 
@@ -765,9 +775,11 @@ Política Q-Learning del Experimento 2 (sección 3.6.1.3), entrenada durante 5 m
 
 | Oponente | Win Rate | Puntos Prom. | Manos Jugadas | Manos Ganadas | % Mentiras Truco | % Mentiras Envido |
 | -------- | -------- | ------------ | ------------- | ------------- | ---------------- | ----------------- |
-| Random   | 66.1%    | 22.75        | 6.00          | 4.85          | 40%              | 58%               |
-| Rational | 69.4%    | 28.25        | 25.91         | 13.11         | 24%              | 55%               |
-| PPO      | 21.8%    | 18.69        | 8.79          | 3.56          | 48%              | 56%               |
+| Random   | 66.1% [63.1, 69.0] | 22.75 ± 0.69 | 6.00 ± 0.30  | 4.85 ± 0.24  | 40%              | 58%               |
+| Rational | 69.4% [66.5, 72.2] | 28.25 ± 0.22 | 25.91 ± 0.24 | 13.11 ± 0.15 | 24%              | 55%               |
+| PPO      | 21.8% [19.4, 24.5] | 18.69 ± 0.49 | 8.79 ± 0.23  | 3.56 ± 0.11  | 48%              | 56%               |
+
+_Nota: Los intervalos en Win Rate corresponden a IC95% Wilson. Para las demás métricas se reporta media ± 1.96 × error estándar (n=1000)._
 
 ##### Agente PPO
 
@@ -775,9 +787,11 @@ Política PPO del Experimento 3 (sección 3.6.2.3), entrenada durante 20 millone
 
 | Oponente   | Win Rate | Puntos Prom. | Manos Jugadas | Manos Ganadas | % Mentiras Truco | % Mentiras Envido |
 | ---------- | -------- | ------------ | ------------- | ------------- | ---------------- | ----------------- |
-| Random     | 93.4%    | 28.73        | 11.21         | 9.98          | 44%              | 55%               |
-| Rational   | 76.2%    | 25.98        | 15.73         | 10.17         | 37%              | 58%               |
-| Q-Learning | 78.2%    | 25.61        | 8.79          | 5.24          | 40%              | 57%               |
+| Random     | 93.4% [91.7, 94.8] | 28.73 ± 0.33 | 11.21 ± 0.19  | 9.98 ± 0.18  | 44%              | 55%               |
+| Rational   | 76.2% [73.5, 78.7] | 25.98 ± 0.52 | 15.73 ± 0.31  | 10.17 ± 0.25 | 37%              | 58%               |
+| Q-Learning | 78.2% [75.5, 80.6] | 25.61 ± 0.57 | 8.79 ± 0.23   | 5.24 ± 0.18  | 40%              | 57%               |
+
+_Nota: Los intervalos en Win Rate corresponden a IC95% Wilson. Para las demás métricas se reporta media ± 1.96 × error estándar (n=1000)._
 
 #### 3.7.2 Visualización de resultados
 
