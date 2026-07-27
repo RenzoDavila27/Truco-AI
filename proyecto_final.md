@@ -1,4 +1,4 @@
-﻿# Proyecto Final — Inteligencia Artificial 1
+# Proyecto Final — Inteligencia Artificial 1
 
 **Título:** Truco-AI: Agentes inteligentes para Truco Argentino (1v1, sin flor)  
 **Autores:** Ramiro Martinez, Renzo Dávila  
@@ -23,19 +23,20 @@
    - [3.3 Agentes utilizados](#33-agentes-utilizados)
    - [3.4 Creación del entorno personalizado](#34-creación-del-entorno-personalizado)
    - [3.5 Agentes y su implementación](#35-agentes-y-su-implementación)
-   - [3.6 Experimentos y resultados internos](#36-experimentos-y-resultados-internos)
-     - [3.6.1 Selección y ajuste de agente Q-Learning](#361-selección-y-ajuste-de-agente-q-learning)
-     - [3.6.2 Selección y ajuste de agente PPO](#362-selección-y-ajuste-de-agente-ppo)
-   - [3.7 Resultados globales](#37-resultados-globales)
-     - [3.7.1 Resultados por agente](#371-resultados-por-agente)
-     - [3.7.2 Visualización de resultados](#372-visualización-de-resultados)
-4. [Análisis y discusión de resultados](#4-análisis-y-discusión-de-resultados)
-   - [4.1 Agente Random](#41-agente-random)
-   - [4.2 Agente Racional](#42-agente-racional)
-   - [4.3 Agente Q-Learning](#43-agente-q-learning)
-   - [4.4 Agente PPO](#44-agente-ppo)
-5. [Conclusiones finales](#5-conclusiones-finales)
-6. [Referencias](#6-referencias)
+4. [Resultados](#4-resultados)
+   - [4.1 Experimentos y resultados internos](#41-experimentos-y-resultados-internos)
+     - [4.1.1 Selección y ajuste de agente Q-Learning](#411-selección-y-ajuste-de-agente-q-learning)
+     - [4.1.2 Selección y ajuste de agente PPO](#412-selección-y-ajuste-de-agente-ppo)
+   - [4.2 Resultados globales](#42-resultados-globales)
+     - [4.2.1 Resultados por agente](#421-resultados-por-agente)
+     - [4.2.2 Visualización de resultados](#422-visualización-de-resultados)
+5. [Análisis y discusión de resultados](#5-análisis-y-discusión-de-resultados)
+   - [5.1 Agente Random](#51-agente-random)
+   - [5.2 Agente Racional](#52-agente-racional)
+   - [5.3 Agente Q-Learning](#53-agente-q-learning)
+   - [5.4 Agente PPO](#54-agente-ppo)
+6. [Conclusiones finales](#6-conclusiones-finales)
+7. [Referencias](#7-referencias)
 
 ---
 
@@ -288,9 +289,9 @@ Durante el entrenamiento, es habitual observar una disminución progresiva de la
   **puntos promedio = puntos totales / partidas totales**.  
   **Interpretación:** permite comparar rendimiento cuando el win rate es similar; un mayor promedio indica que el agente no solo gana, sino que lo hace con mayor margen.
 
-- **Porcentaje de mentiras:** proporción de cantos realizados con mano desfavorable según el siguiente criterio simplificado: para **Truco/Retruco/Vale Cuatro**, se considera **mentira** si el promedio de fuerza de la mano del que canta es menor que el promedio de fuerza de la mano del oponente (se calcula a partir del ranking de cartas y se compara el promedio). Para **Envido**, se considera **mentira** si el jugador que canta tiene **menos de 25 puntos de envido**. Se calcula como  
+- **Porcentaje de mentiras:** proporción de cantos realizados con mano desfavorable según el siguiente criterio simplificado. Para **Truco/Retruco/Vale Cuatro**, se considera **mentira** si el promedio de fuerza de la mano del que canta es menor que el promedio de fuerza de la mano del oponente. La fuerza de cada carta se obtiene transformando el ranking mediante **fuerza = 15 − ranking**, de modo que valores más altos representen cartas más fuertes (por ejemplo, el as de espadas con ranking 1 tiene fuerza 14, mientras que un cuatro con ranking 14 tiene fuerza 1). Para **Envido**, se considera **mentira** si el jugador que canta tiene **menos de 25 puntos de envido**. Se calcula como  
   **% mentiras = cantos con mano desfavorable / cantos totales**.  
-  **Interpretación:** valores altos indican un estilo más agresivo; valores bajos reflejan un juego conservador. Se analiza junto al win rate para evaluar si la mentira es efectiva o simplemente riesgosa.
+  **Interpretación:** valores altos indican un estilo más agresivo; valores bajos reflejan un juego conservador. Se analiza junto al win rate para evaluar si la mentira es efectiva o simplemente riesgosa. Cabe notar que esta es una definición simplificada de "mentira": la fuerza estratégica real de una mano de Truco no depende exclusivamente del promedio de fuerza de las cartas, sino también de factores como la distribución de fuerzas entre las tres cartas, la posición en la ronda y el contexto de la partida.
 
 - **Duración promedio de partida (en manos):** número promedio de manos jugadas por partida. Se calcula como  
   **manos promedio = manos totales jugadas / partidas totales**.  
@@ -533,17 +534,25 @@ Los hiperparámetros utilizados para el entrenamiento del agente PPO son:
 
 ##### Liga de oponentes
 
-El entrenamiento utiliza una liga de oponentes (sección 2.4) que combina tres tipos de rivales seleccionados aleatoriamente en cada episodio: self-play (el modelo actual juega contra sí mismo), agentes heurísticos (aleatorio y racional, elegidos con igual probabilidad) y snapshots (versiones anteriores del modelo guardadas durante el entrenamiento). La distribución de probabilidades entre estos tres tipos varía según el experimento y se detalla en la sección 3.6.2.
+El entrenamiento utiliza una liga de oponentes (sección 2.4) que combina tres tipos de rivales seleccionados aleatoriamente en cada episodio: self-play (el modelo actual juega contra sí mismo), agentes heurísticos (aleatorio y racional, elegidos con igual probabilidad) y snapshots (versiones anteriores del modelo guardadas durante el entrenamiento). La distribución de probabilidades entre estos tres tipos varía según el experimento y se detalla en la sección 4.1.2.
 
 Los snapshots se generan automáticamente cada 200,000 timesteps y se agregan a la liga como oponentes adicionales. Al inicio del entrenamiento, cuando aún no existen snapshots, el porcentaje destinado a ellos se redirige como fallback a los agentes heurísticos hasta que se genera el primer snapshot.
 
-### 3.6 Experimentos y resultados internos
+---
+
+## 4. Resultados
+
+### 4.1 Experimentos y resultados internos
 
 En esta sección se presentan los experimentos realizados para evaluar el efecto de las distintas estrategias de entrenamiento sobre el desempeño de cada agente. El objetivo es seleccionar, para cada algoritmo, la configuración de entrenamiento que produce la política más competitiva.
 
-#### 3.6.1 Selección y ajuste de agente Q-Learning
+**Aclaración sobre los experimentos.** Cada configuración de entrenamiento se ejecutó una sola vez. La única excepción es el Experimento 2 de Q-Learning (sección 4.1.1.1), que se repitió con dos semillas distintas para verificar reproducibilidad. Los hiperparámetros de cada algoritmo se fijaron de antemano basándose en valores por defecto de la librería Stable-Baselines3, sin realizar una búsqueda sistemática de hiperparámetros. La evaluación durante el entrenamiento se realizó mediante snapshots periódicos del modelo, evaluados en enfrentamientos contra los agentes heurísticos (aleatorio y racional). El modelo final seleccionado para cada agente corresponde a la política obtenida al completar el entrenamiento. Esta decisión de diseño implica una limitación: al no disponer de múltiples ejecuciones con distintas semillas para cada configuración, no es posible separar completamente el efecto de la estrategia de entrenamiento del efecto de la aleatoriedad. Por eso, los resultados obtenidos muestran tendencias generales y aplican para las condiciones en las que se hizo cada experimento.
 
-##### 3.6.1.1 Experimentos de convergencia
+**Nota sobre intervalos de confianza.** Para cuantificar la incertidumbre de las estimaciones, se reportan intervalos de confianza al 95%. Para los win rates se utiliza el intervalo de Wilson, más adecuado que el intervalo normal cuando las proporciones están cerca de 0 o 1. Para las métricas continuas (puntos promedio, manos jugadas, manos ganadas) se reporta media ± 1.96 × error estándar. Dado que cada partida constituye un ensayo independiente, estos intervalos reflejan la variabilidad muestral de la estimación.
+
+#### 4.1.1 Selección y ajuste de agente Q-Learning
+
+##### 4.1.1.1 Experimentos de convergencia
 
 Se diseñaron tres experimentos para analizar cómo la elección del oponente de entrenamiento influye en la convergencia y la calidad de la política aprendida por el agente Q-Learning. Todos los experimentos utilizaron los mismos hiperparámetros (α=0.1, γ=1.0, ε₀=0.5 con decaimiento cosenoidal) y la misma codificación del estado descrita en la sección 3.5.2. Para cada experimento se midió la tasa de victoria (win rate) en enfrentamientos de 500 partidas contra los agentes aleatorio y racional, registrada periódicamente mediante snapshots intermedios de la Q-table.
 
@@ -553,7 +562,7 @@ Se diseñaron tres experimentos para analizar cómo la elección del oponente de
 
 **Experimento 3: Entrenamiento mixto.** En este experimento se combinaron ambas estrategias de forma secuencial: el agente fue entrenado primero durante 3 millones de partidas en self-play, y luego se continuó el entrenamiento durante 500,000 partidas adicionales contra el agente racional, manteniendo la Q-table acumulada de la primera fase. La cantidad reducida de episodios en la segunda fase es una decisión deliberada motivada por la naturaleza tabular de Q-Learning: cada actualización sobrescribe directamente el valor Q del par estado-acción correspondiente, sin la capacidad de generalización que ofrecen los aproximadores de función. Un entrenamiento prolongado contra un único oponente tendería a sobreescribir progresivamente el conocimiento adquirido durante el self-play, reemplazando la política diversa por una especializada exclusivamente contra el racional. Con 500,000 episodios se busca un equilibrio: suficientes para corregir la debilidad del agente frente a un oponente sincero y determinístico en sus decisiones, pero no tantos como para perder las estrategias aprendidas durante la primera fase.
 
-##### 3.6.1.2 Resultados de experimentos
+##### 4.1.1.2 Resultados de experimentos
 
 Las siguientes figuras muestran la evolución de la tasa de victoria (win rate) de cada agente Q-Learning a lo largo del entrenamiento, evaluada periódicamente mediante snapshots intermedios de la Q-table en enfrentamientos de 500 partidas.
 
@@ -607,11 +616,11 @@ Figura: Win rate del agente mixto evaluado contra el agente aleatorio. La fase d
 
 Figura: Win rate del agente mixto evaluado contra el agente racional. Se observa el salto de rendimiento al iniciar la segunda fase de entrenamiento contra el racional.
 
-##### 3.6.1.3 Discusión y elección
+##### 4.1.1.3 Discusión y elección
 
 **Experimento 1: Self-play puro.** El agente entrenado mediante self-play exhibe una convergencia marcadamente asimétrica frente a los dos oponentes heurísticos. Contra el agente aleatorio alcanza un win rate aproximado del 80%, lo cual se explica por la naturaleza del proceso de entrenamiento: durante las primeras iteraciones, cuando la Q-table aún no contiene información significativa, la política del agente es esencialmente aleatoria debido a la alta tasa de exploración (ε₀=0.5). En consecuencia, el self-play inicial equivale en la práctica a jugar contra un oponente aleatorio, lo que permite al agente aprender rápidamente a explotar las debilidades de este estilo de juego. Sin embargo, contra el agente racional el rendimiento es considerablemente inferior, alcanzando apenas un 20% de win rate en sus puntos más altos. Este resultado evidencia la limitación fundamental del self-play puro: al nunca enfrentarse a un oponente con estrategia estructurada, el agente no desarrolla la capacidad de responder ante un estilo de juego conservador y basado en reglas, radicalmente distinto al que experimenta durante su entrenamiento.
 
-**Experimento 2: Entrenamiento contra agente racional.** Ambos agentes, entrenados con semillas distintas, exhiben trayectorias de convergencia similares: alcanzan aproximadamente un 70% de win rate tanto contra el agente aleatorio como contra el agente racional. A diferencia del self-play puro, el entrenamiento exclusivo contra un oponente racional produce un agente más equilibrado, capaz de competir razonablemente contra ambos estilos de juego. La equivalencia entre las dos políticas resultantes se confirma en el enfrentamiento directo entre ambos agentes (sección 3.6.1.2), donde el resultado de 499-501 en 1000 partidas indica que las diferencias entre ambas semillas son estadísticamente insignificantes.
+**Experimento 2: Entrenamiento contra agente racional.** Ambos agentes, entrenados con semillas distintas, exhiben trayectorias de convergencia similares: alcanzan aproximadamente un 70% de win rate tanto contra el agente aleatorio como contra el agente racional. A diferencia del self-play puro, el entrenamiento exclusivo contra un oponente racional produce un agente más equilibrado, capaz de competir razonablemente contra ambos estilos de juego. La equivalencia entre las dos políticas resultantes se confirma en el enfrentamiento directo entre ambos agentes (sección 4.1.1.2), donde el resultado de 499-501 en 1000 partidas (IC95% Wilson: [46.8%, 53.0%]) indica que la diferencia entre ambas semillas es compatible con el azar, ya que el intervalo contiene el 50%.
 
 **Experimento 3: Entrenamiento mixto.** El win rate contra el agente aleatorio se mantiene estable en torno al 80% durante todo el entrenamiento, tanto en la fase de self-play como en la fase posterior contra el agente racional. Esto se explica por dos factores complementarios: durante el self-play, el agente aprende a explotar las estrategias agresivas e impredecibles propias de un oponente aleatorio, y al transicionar al entrenamiento contra el racional, este rendimiento no se deteriora, ya que un agente capaz de derrotar consistentemente a un oponente basado en reglas fijas conserva naturalmente su ventaja sobre un oponente sin estrategia. Contra el agente racional, en cambio, se observa una transición marcada: durante los primeros 3 millones de episodios en self-play, el rendimiento se mantiene en aproximadamente un 20% de win rate, consistente con lo observado en el Experimento 1. Sin embargo, al iniciar la segunda fase de entrenamiento contra el racional, el win rate escala rápidamente hasta alcanzar un 70% en apenas 500,000 episodios adicionales. Esta convergencia acelerada se atribuye al fenómeno de transferencia de conocimiento: la fase de self-play no solo enseña al agente a jugar contra sí mismo, sino que le permite construir una representación rica del espacio estado-acción del juego, aprendiendo la mecánica de las rondas, el valor relativo de las cartas, y la dinámica de las apuestas. Al enfrentarse posteriormente al agente racional, el agente no parte de cero; ya posee un conocimiento general del juego que solo necesita ser ajustado para responder a los patrones específicos de un oponente determinístico y predecible.
 
@@ -619,19 +628,21 @@ Figura: Win rate del agente mixto evaluado contra el agente racional. Se observa
 
 | Win rate (fila vs columna) | Exp. 1 (self-play) | Exp. 2 (vs racional) | Exp. 3 (mixto) |
 | -------------------------- | ------------------ | -------------------- | -------------- |
-| **Exp. 1 (self-play)**     | —                  | 53.6%                | 64.9%          |
-| **Exp. 2 (vs racional)**   | 46.4%              | —                    | 53.7%          |
-| **Exp. 3 (mixto)**         | 35.1%              | 46.3%                | —              |
+| **Exp. 1 (self-play)**     | —                  | 53.6% [50.5, 56.7]   | 64.9% [61.9, 67.8] |
+| **Exp. 2 (vs racional)**   | 46.4% [43.3, 49.5] | —                   | 53.7% [50.6, 56.8] |
+| **Exp. 3 (mixto)**         | 35.1% [32.2, 38.1] | 46.3% [43.2, 49.4]  | —              |
+
+_Nota: Los valores entre corchetes corresponden al IC95% Wilson (n=1000 partidas por enfrentamiento)._
 
 A pesar de su pésima convergencia contra el agente racional, el agente del Experimento 1 obtiene una ventaja en los enfrentamientos directos. Esto se debe a que su política, forjada exclusivamente en self-play, desarrolla un repertorio estratégico más impredecible que incluye el uso frecuente de la mentira como herramienta ofensiva. En contraste, los agentes de los Experimentos 2 y 3, al haber sido parcial o totalmente entrenados contra el agente racional (que nunca miente), tienden a adoptar políticas más conservadoras y predecibles a la hora de responder, lo que los hace vulnerables ante un oponente con mayor variabilidad estratégica.
 
-No obstante, la selección del agente final no debe basarse exclusivamente en el desempeño entre políticas Q-Learning, sino en la capacidad de generalización frente a distintos estilos de juego. En este sentido, el agente del Experimento 2 (racional) presenta el perfil más equilibrado: alcanza un 70% de win rate contra el agente aleatorio, contra el racional, y con una minima desventaja contra politicas con mayor variabilidad estrategica. Por esta razón, se selecciona la Q-table del Experimento 2 como la política Q-Learning definitiva para las evaluaciones globales.
+No obstante, la selección del agente final no debe basarse exclusivamente en el desempeño entre políticas Q-Learning, sino en la capacidad de generalización frente a distintos estilos de juego. En este sentido, el agente del Experimento 2 (racional) presenta el perfil más equilibrado: alcanza un 70% de win rate contra el agente aleatorio, contra el racional, y con una mínima desventaja contra políticas con mayor variabilidad estratégica. Dado que ambas semillas del Experimento 2 producen políticas con desempeño prácticamente idéntico (499-501 en enfrentamiento directo, IC95% Wilson: [46.8%, 53.0%], conteniendo el 50%), se selecciona la Q-table de la semilla 789987 como la política Q-Learning definitiva para las evaluaciones globales.
 
-#### 3.6.2 Selección y ajuste de agente PPO
+#### 4.1.2 Selección y ajuste de agente PPO
 
-##### 3.6.2.1 Experimentos de convergencia
+##### 4.1.2.1 Experimentos de convergencia
 
-Se diseñaron tres experimentos para evaluar cómo la composición de la liga de oponentes (sección 2.4) influye en la calidad de la política aprendida por el agente PPO. Todos los experimentos utilizaron los mismos hiperparámetros descritos en la sección 3.5.3 y un total de 20,000,000 de timesteps, con snapshots generados cada 200,000 timesteps. La única variable entre los experimentos fue la distribución de probabilidades de selección de oponentes en la liga.
+Se diseñaron tres experimentos para evaluar cómo la composición de la liga de oponentes (sección 2.4) influye en la calidad de la política aprendida por el agente PPO. Todos los experimentos utilizaron los mismos hiperparámetros descritos en la sección 3.5.3 y un total de 20,000,000 de timesteps, con snapshots generados cada 200,000 timesteps. La única variable entre los experimentos fue la distribución de probabilidades de selección de oponentes en la liga. Cada configuración se entrenó una sola vez, sin fijar una semilla explícita para el generador de números aleatorios, por lo que la inicialización de los pesos de la red y la secuencia de episodios dependieron del estado aleatorio del sistema. El modelo final seleccionado para cada experimento corresponde a la política obtenida al completar los 20M timesteps de entrenamiento.
 
 **Experimento 1: Self-play puro con snapshots.** La liga se compone exclusivamente de self-play y versiones anteriores del modelo, sin oponentes heurísticos. El objetivo es evaluar si el agente es capaz de desarrollar una política competitiva a partir únicamente de su propia experiencia, maximizando la co-evolución entre la política actual y sus versiones pasadas.
 
@@ -657,7 +668,7 @@ Se diseñaron tres experimentos para evaluar cómo la composición de la liga de
 | Snapshots        | 20%                            |
 | Heurísticos      | 60% (30% random, 30% racional) |
 
-##### 3.6.2.2 Resultados de experimentos
+##### 4.1.2.2 Resultados de experimentos
 
 **Experimento 1: Self-play puro con snapshots**
 
@@ -701,7 +712,7 @@ Figura: Win rate del agente PPO (énfasis en heurísticos) evaluado contra el ag
 
 Figura: Evolución de las losses de entrenamiento del agente PPO (énfasis en heurísticos). Se muestran la clipped surrogate loss, value loss, entropy loss y loss total a lo largo de 20M timesteps.
 
-##### 3.6.2.3 Discusión y elección
+##### 4.1.2.3 Discusión y elección
 
 **Experimento 1: Self-play puro con snapshots.** El agente entrenado exclusivamente mediante self-play y snapshots alcanza un win rate estable pero moderado contra el agente aleatorio (~65%), y un desempeño muy pobre contra el agente racional (~20%). La ausencia total de oponentes heurísticos impide que el agente aprenda a explotar las debilidades del agente racional o a contrarrestar la impredecibilidad del agente aleatorio de forma efectiva. Las curvas de loss muestran convergencia: la value loss se estabiliza alrededor de 0.72 y la entropía oscila entre -1 y -1.1, valores menos optimos que los demas experimentos. Esto ultimo se debe a que el agente no consigue sacar una ventaja a su oponente, ya que este cambia permanentemente.
 
@@ -725,27 +736,31 @@ Para complementar el análisis, se realizaron enfrentamientos directos entre los
 
 | Win rate (fila vs columna)          | Exp. 1 (self-play) | Exp. 2 (equilibrada) | Exp. 3 (heurísticos) |
 | ----------------------------------- | ------------------ | -------------------- | -------------------- |
-| **Exp. 1 (self-play)**              | —                  | 49.1%                | 55.7%                |
-| **Exp. 2 (equilibrada)**            | 50.9%              | —                    | 52.7%                |
-| **Exp. 3 (énfasis en heurísticos)** | 44.3%              | 47.3%                | —                    |
+| **Exp. 1 (self-play)**              | —                  | 49.1% [46.0, 52.2]   | 55.7% [52.6, 58.8]   |
+| **Exp. 2 (equilibrada)**            | 50.9% [47.8, 54.0] | —                    | 52.7% [49.6, 55.8]   |
+| **Exp. 3 (énfasis en heurísticos)** | 44.3% [41.2, 47.4] | 47.3% [44.2, 50.4]  | —                    |
+
+_Nota: Los valores entre corchetes corresponden al IC95% Wilson (n=1000 partidas por enfrentamiento)._
 
 Los enfrentamientos directos revelan un resultado interesante: el Experimento 3, a pesar de dominar ampliamente contra los agentes heurísticos, presenta el peor desempeño en los duelos entre políticas PPO. Esto sugiere que su alta especialización contra oponentes heurísticos lo hace vulnerable frente a estrategias más impredecibles generadas por self-play. El Experimento 2 obtiene el mejor balance en enfrentamientos directos, superando tanto al Exp. 1 como al Exp. 3.
 
-No obstante, la selección del agente final debe priorizar la capacidad de generalización frente a distintos estilos de juego. En este sentido, el Experimento 3 presenta el mejor desempeño global contra los oponentes heurísticos (~93% vs aleatorio, ~73% vs racional), superando a los otros dos experimentos, y las diferencias en los enfrentamientos directos son mínimas. Por esta razón, se selecciona la política del Experimento 3 como el agente PPO definitivo para las evaluaciones globales.
+No obstante, la selección del agente final debe priorizar la capacidad de generalización frente a distintos estilos de juego. En este sentido, el Experimento 3 presenta el mejor desempeño global contra los oponentes heurísticos (~93% vs aleatorio, ~73% vs racional), superando a los otros dos experimentos. En los enfrentamientos directos, los ICs de Exp.1 vs Exp.2 ([46.0%, 52.2%]) y Exp.2 vs Exp.3 ([49.6%, 55.8%]) contienen el 50%, lo que indica que las diferencias no son distinguibles del azar con esta cantidad de partidas. Únicamente el enfrentamiento Exp.1 vs Exp.3 ([52.6%, 58.8%]) sugiere una ventaja leve del Exp.1 en duelos directos. Por esta razón, se selecciona la política del Experimento 3 como el agente PPO definitivo para las evaluaciones globales.
 
-### 3.7 Resultados globales
+### 4.2 Resultados globales
 
-#### 3.7.1 Resultados por agente
+#### 4.2.1 Resultados por agente
 
-Para evaluar el desempeño final de los agentes desarrollados, se realizaron enfrentamientos de 1000 partidas entre cada par de agentes. A continuación se presentan los resultados organizados por agente evaluado.
+Para evaluar el desempeño final de los agentes desarrollados, se realizaron enfrentamientos de 1000 partidas entre cada par de agentes. Los modelos utilizados corresponden a las políticas finales seleccionadas en las secciones de experimentos internos: para Q-Learning, la Q-table del Experimento 2 con semilla 789987 (sección 4.1.1.3); para PPO, la política del Experimento 3 con distribución de liga 20/60/20 (sección 4.1.2.3). A continuación se presentan los resultados organizados por agente evaluado.
 
 ##### Agente Random
 
 | Oponente   | Win Rate | Puntos Prom. | Manos Jugadas | Manos Ganadas | % Mentiras Truco | % Mentiras Envido |
 | ---------- | -------- | ------------ | ------------- | ------------- | ---------------- | ----------------- |
-| Rational   | 5.1%     | 8.37         | 10.96         | 2.62          | 45%              | 64%               |
-| Q-Learning | 33.9%    | 15.62        | 6.00          | 1.16          | 45%              | 62%               |
-| PPO        | 6.6%     | 11.53        | 11.21         | 1.22          | 49%              | 63%               |
+| Rational   | 5.1% [3.9, 6.6]  | 8.37 ± 0.48  | 10.96 ± 0.43  | 2.62 ± 0.14   | 45%              | 64%               |
+| Q-Learning | 33.9% [31.0, 36.9] | 15.62 ± 0.76 | 6.00 ± 0.30  | 1.16 ± 0.08   | 45%              | 62%               |
+| PPO        | 6.6% [5.2, 8.3]  | 11.53 ± 0.47 | 11.21 ± 0.19  | 1.22 ± 0.07   | 49%              | 63%               |
+
+_Nota: Los intervalos en Win Rate corresponden a IC95% Wilson. Para las demás métricas se reporta media ± 1.96 × error estándar (n=1000)._
 
 ##### Agente Racional
 
@@ -753,31 +768,37 @@ El agente racional implementa heurísticas diseñadas manualmente basadas en reg
 
 | Oponente   | Win Rate | Puntos Prom. | Manos Jugadas | Manos Ganadas | % Mentiras Truco | % Mentiras Envido |
 | ---------- | -------- | ------------ | ------------- | ------------- | ---------------- | ----------------- |
-| Random     | 94.9%    | 28.95        | 10.96         | 8.35          | 20%              | 0%                |
-| Q-Learning | 30.6%    | 23.88        | 25.91         | 12.80         | 21%              | 0%                |
-| PPO        | 23.8%    | 20.12        | 15.73         | 5.56          | 26%              | 0%                |
+| Random     | 94.9% [93.4, 96.1] | 28.95 ± 0.30 | 10.96 ± 0.43  | 8.35 ± 0.33  | 20%              | 0%                |
+| Q-Learning | 30.6% [27.8, 33.5] | 23.88 ± 0.37 | 25.91 ± 0.24  | 12.80 ± 0.23 | 21%              | 0%                |
+| PPO        | 23.8% [21.3, 26.5] | 20.12 ± 0.46 | 15.73 ± 0.31  | 5.56 ± 0.15  | 26%              | 0%                |
+
+_Nota: Los intervalos en Win Rate corresponden a IC95% Wilson. Para las demás métricas se reporta media ± 1.96 × error estándar (n=1000)._
 
 ##### Agente Q-Learning
 
-El agente entrenado mediante Monte Carlo Q-Learning en self-play y contra el agente racional.
+Política Q-Learning del Experimento 2 (sección 4.1.1.3), entrenada durante 5 millones de partidas exclusivamente contra el agente racional con semilla 789987.
 
 | Oponente | Win Rate | Puntos Prom. | Manos Jugadas | Manos Ganadas | % Mentiras Truco | % Mentiras Envido |
 | -------- | -------- | ------------ | ------------- | ------------- | ---------------- | ----------------- |
-| Random   | 66.1%    | 22.75        | 6.00          | 4.85          | 40%              | 58%               |
-| Rational | 69.4%    | 28.25        | 25.91         | 13.11         | 24%              | 55%               |
-| PPO      | 21.8%    | 18.69        | 8.79          | 3.56          | 48%              | 56%               |
+| Random   | 66.1% [63.1, 69.0] | 22.75 ± 0.69 | 6.00 ± 0.30  | 4.85 ± 0.24  | 40%              | 58%               |
+| Rational | 69.4% [66.5, 72.2] | 28.25 ± 0.22 | 25.91 ± 0.24 | 13.11 ± 0.15 | 24%              | 55%               |
+| PPO      | 21.8% [19.4, 24.5] | 18.69 ± 0.49 | 8.79 ± 0.23  | 3.56 ± 0.11  | 48%              | 56%               |
+
+_Nota: Los intervalos en Win Rate corresponden a IC95% Wilson. Para las demás métricas se reporta media ± 1.96 × error estándar (n=1000)._
 
 ##### Agente PPO
 
-El agente entrenado mediante Proximal Policy Optimization con action masking.
+Política PPO del Experimento 3 (sección 4.1.2.3), entrenada durante 20 millones de timesteps con liga de oponentes en distribución 20/60/20 (self-play, heurísticos, snapshots).
 
 | Oponente   | Win Rate | Puntos Prom. | Manos Jugadas | Manos Ganadas | % Mentiras Truco | % Mentiras Envido |
 | ---------- | -------- | ------------ | ------------- | ------------- | ---------------- | ----------------- |
-| Random     | 93.4%    | 28.73        | 11.21         | 9.98          | 44%              | 55%               |
-| Rational   | 76.2%    | 25.98        | 15.73         | 10.17         | 37%              | 58%               |
-| Q-Learning | 78.2%    | 25.61        | 8.79          | 5.24          | 40%              | 57%               |
+| Random     | 93.4% [91.7, 94.8] | 28.73 ± 0.33 | 11.21 ± 0.19  | 9.98 ± 0.18  | 44%              | 55%               |
+| Rational   | 76.2% [73.5, 78.7] | 25.98 ± 0.52 | 15.73 ± 0.31  | 10.17 ± 0.25 | 37%              | 58%               |
+| Q-Learning | 78.2% [75.5, 80.6] | 25.61 ± 0.57 | 8.79 ± 0.23   | 5.24 ± 0.18  | 40%              | 57%               |
 
-#### 3.7.2 Visualización de resultados
+_Nota: Los intervalos en Win Rate corresponden a IC95% Wilson. Para las demás métricas se reporta media ± 1.96 × error estándar (n=1000)._
+
+#### 4.2.2 Visualización de resultados
 
 Los siguientes gráficos de violín muestran la distribución de puntos obtenidos por partida para cada enfrentamiento entre agentes. Cada violin representa la densidad de probabilidad de los puntajes finales, permitiendo observar no solo la tendencia central sino también la dispersión y la forma de la distribución. Los puntos individuales superpuestos corresponden a cada una de las 1000 partidas simuladas.
 
@@ -845,11 +866,11 @@ _Figura 11: Matriz de diferencia promedio de puntos entre todos los agentes. Est
 
 ---
 
-## 4. Análisis y discusión de resultados
+## 5. Análisis y discusión de resultados
 
 A continuación se analiza el desempeño de cada agente en función de las tres métricas definidas: win rate, puntos promedio y porcentaje de mentiras.
 
-### 4.1 Agente Random
+### 5.1 Agente Random
 
 El agente aleatorio sirve como línea base fundamental para evaluar el desempeño de los demás agentes. Su comportamiento, al seleccionar acciones uniformemente entre las opciones válidas, representa el rendimiento mínimo esperable sin ningún tipo de estrategia.
 
@@ -869,7 +890,7 @@ El agente Random presenta tasas de mentira del 45–49% en Truco y 62–64% en E
 
 El agente Random cumple su rol como baseline al ser consistentemente superado por todos los agentes con estrategia. Tanto PPO como Rational logran win rates superiores al 93% contra él, mientras que Q-Learning alcanza 66.1%. La diferencia entre Q-Learning y los otros dos agentes sugiere que la discretización del espacio de estados limita la capacidad de explotar sistemáticamente a un oponente predecible por su aleatoriedad.
 
-### 4.2 Agente Racional
+### 5.2 Agente Racional
 
 El agente Racional implementa heurísticas diseñadas manualmente basadas en las reglas del Truco Argentino. Su estrategia es determinística y conservadora: solo canta cuando su mano lo justifica según umbrales predefinidos, y nunca miente en el envido.
 
@@ -889,9 +910,9 @@ El aspecto más distintivo del agente Racional es su comportamiento honesto: pre
 
 El agente Racional cumple un rol importante como referencia intermedia: domina al azar pero es ampliamente superado por ambos agentes de RL. Su caída frente a Q-Learning y especialmente frente a PPO demuestra que la predictibilidad de una estrategia determinística y honesta es una vulnerabilidad significativa en un juego donde la mentira es una herramienta legítima. Los agentes de RL aprendieron a explotar esta predictibilidad, validando la premisa de que el aprendizaje automático puede descubrir estrategias superiores a las heurísticas diseñadas manualmente en juegos con información imperfecta.
 
-### 4.3 Agente Q-Learning
+### 5.3 Agente Q-Learning
 
-El agente Q-Learning representa el primer enfoque de aprendizaje por refuerzo implementado, utilizando una tabla de valores Q con discretización del espacio de estados. Su entrenamiento combinó 20 millones de partidas en self-play seguidas de 1 millón contra el agente Racional.
+El agente Q-Learning representa el primer enfoque de aprendizaje por refuerzo implementado, utilizando una tabla de valores Q con discretización del espacio de estados. Su entrenamiento consistió en 5 millones de partidas exclusivamente contra el agente Racional (Experimento 2, sección 4.1.1.3), seleccionado por presentar el perfil más equilibrado frente a distintos estilos de juego.
 
 #### Win rate
 
@@ -907,9 +928,9 @@ Q-Learning presenta tasas de mentira del 24–48% en Truco y 55–58% en Envido,
 
 #### Conclusión
 
-El agente Q-Learning demuestra que incluso con la limitación de una tabla Q discreta, el aprendizaje por refuerzo puede descubrir estrategias efectivas contra oponentes determinísticos. Su victoria contundente sobre Rational (69.4%) valida el enfoque de entrenamiento mixto. Sin embargo, la caída abrupta contra PPO (21.8%) expone las limitaciones de la discretización del espacio de estados: frente a un oponente con capacidad de generalización a través de una red neuronal, la tabla Q no logra capturar los matices necesarios para competir. Su estrategia enfocada en el envido resulta efectiva para cerrar partidas rápidamente pero insuficiente contra un oponente que maneja todas las mecánicas del juego de forma más equilibrada.
+El agente Q-Learning demuestra que incluso con la limitación de una tabla Q discreta, el aprendizaje por refuerzo puede descubrir estrategias efectivas contra oponentes determinísticos. Su victoria contundente sobre Rational (69.4%) valida el enfoque de entrenamiento exclusivo contra el agente racional. Sin embargo, la caída abrupta contra PPO (21.8%) expone las limitaciones de la discretización del espacio de estados: frente a un oponente con capacidad de generalización a través de una red neuronal, la tabla Q no logra capturar los matices necesarios para competir. Su estrategia enfocada en el envido resulta efectiva para cerrar partidas rápidamente pero insuficiente contra un oponente que maneja todas las mecánicas del juego de forma más equilibrada.
 
-### 4.4 Agente PPO
+### 5.4 Agente PPO
 
 El agente PPO (Proximal Policy Optimization) representa el segundo enfoque de aprendizaje por refuerzo, utilizando una red neuronal como aproximador de función y entrenado mediante una liga de oponentes que combina self-play, snapshots y agentes heurísticos (distribución 20/60/20) a lo largo de 20 millones de timesteps.
 
@@ -931,7 +952,7 @@ El agente PPO se establece como el claro ganador del estudio, dominando todos lo
 
 ---
 
-## 5. Conclusiones finales
+## 6. Conclusiones finales
 
 El desarrollo de agentes de inteligencia artificial para el Truco Argentino representa un desafío que trasciende la mera implementación de algoritmos de aprendizaje por refuerzo. El juego combina información imperfecta, estocasticidad en el reparto de cartas, y un componente psicológico fundamental: la mentira como herramienta estratégica válida. Esta combinación genera un escenario donde no existe una estrategia óptima universal.
 
@@ -981,7 +1002,7 @@ La redacción y estructuración de este documento fue asistida por el modelo de 
 
 ---
 
-## 6. Referencias
+## 7. Referencias
 
 [1] Wang, H., Emmerich, M., & Plaat, A. (2018). _Monte Carlo Q-learning for General Game Playing_. arXiv preprint arXiv:1802.05944. Recuperado de https://arxiv.org/abs/1802.05944
 
